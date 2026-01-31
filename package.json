@@ -1,0 +1,299 @@
+{
+  "name": "curl-code",
+  "displayName": "curl-code",
+  "description": "Full-featured HTTP client with cURL backend for VS Code",
+  "version": "0.1.0",
+  "publisher": "curl-code",
+  "license": "MIT",
+  "private": true,
+  "author": {
+    "name": "Justin Baur"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justinbaur/curl-code"
+  },  
+  "engines": {
+    "vscode": "^1.108.0",
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "categories": [
+    "Other",
+    "Testing"
+  ],
+  "keywords": [
+    "http",
+    "rest",
+    "api",
+    "curl",
+    "client",
+    "request"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "build:webview": "cd webview-ui && npm run build",
+    "build:all": "npm run build:webview && npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/vscode": "^1.108.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.39.2",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.7.3",
+    "webpack": "^5.104.1",
+    "webpack-cli": "^5.1.4"
+  },  
+  "activationEvents": [
+    "onLanguage:http",
+    "workspaceContains:**/*.http",
+    "workspaceContains:**/*.rest",
+    "workspaceContains:**/.curl-code/**"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "curl-code-explorer",
+          "title": "curl-code",
+          "icon": "media/icons/curl-code.png"
+        }
+      ]
+    },
+    "views": {
+      "curl-code-explorer": [
+        {
+          "id": "curl-code.collections",
+          "name": "Collections",
+          "contextualTitle": "HTTP Collections"
+        },
+        {
+          "id": "curl-code.history",
+          "name": "History",
+          "contextualTitle": "Request History"
+        },
+        {
+          "id": "curl-code.environments",
+          "name": "Environments",
+          "contextualTitle": "Environments"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "curl-code.newRequest",
+        "title": "New Request",
+        "icon": "$(add)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.sendRequest",
+        "title": "Send Request",
+        "icon": "$(play)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.newCollection",
+        "title": "New Collection",
+        "icon": "$(new-folder)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.importCollection",
+        "title": "Import Collection",
+        "icon": "$(cloud-download)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.exportCollection",
+        "title": "Export Collection",
+        "icon": "$(cloud-upload)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.newEnvironmentVariable",
+        "title": "New Environment Variable",
+        "icon": "$(add)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.refreshEnvironments",
+        "title": "Refresh Environment",
+        "icon": "$(play)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.newEnvironment",
+        "title": "New Environment",
+        "icon": "$(new-folder)",
+        "category": "curl-code"
+      },      
+      {
+        "command": "curl-code.openRequestBuilder",
+        "title": "Open Request Builder",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.runHttpFile",
+        "title": "Run HTTP Request",
+        "icon": "$(run)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.copyAsCurl",
+        "title": "Copy as cURL",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.clearHistory",
+        "title": "Clear History",
+        "icon": "$(clear-all)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.refreshCollections",
+        "title": "Refresh Collections",
+        "icon": "$(refresh)",
+        "category": "curl-code"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "curl-code.newRequest",
+          "when": "view == curl-code.collections",
+          "group": "navigation"
+        },
+        {
+          "command": "curl-code.newCollection",
+          "when": "view == curl-code.collections",
+          "group": "navigation"
+        },
+        {
+          "command": "curl-code.refreshCollections",
+          "when": "view == curl-code.collections",
+          "group": "navigation"
+        },        
+        {
+          "command": "curl-code.importCollection",
+          "when": "view == curl-code.collections"
+        },
+        {
+          "command": "curl-code.newEnvironmentVariable",
+          "when": "view == curl-code.environments",
+          "group": "navigation"
+        },
+        {
+          "command": "curl-code.newEnvironment",
+          "when": "view == curl-code.environments",
+          "group": "navigation"
+        },
+        {
+          "command": "curl-code.refreshEnvironments",
+          "when": "view == curl-code.environments",
+          "group": "navigation"
+        },        
+        {
+          "command": "curl-code.clearHistory",
+          "when": "view == curl-code.history",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "curl-code.sendRequest",
+          "when": "view == curl-code.collections && viewItem == request",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.exportCollection",
+          "when": "view == curl-code.collections && viewItem == collection"
+        },
+        {
+          "command": "curl-code.copyAsCurl",
+          "when": "view == curl-code.collections && viewItem == request"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "curl-code.runHttpFile",
+          "when": "resourceLangId == http",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "curl-code.sendRequest",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s"
+      },
+      {
+        "command": "curl-code.newRequest",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+n"
+      }
+    ],
+    "languages": [
+      {
+        "id": "http",
+        "aliases": [
+          "HTTP",
+          "http"
+        ],
+        "extensions": [
+          ".http",
+          ".rest"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "configuration": {
+      "title": "curl-code",
+      "properties": {
+        "curl-code.curlPath": {
+          "type": "string",
+          "default": "curl",
+          "description": "Path to cURL executable"
+        },
+        "curl-code.timeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Request timeout in milliseconds"
+        },
+        "curl-code.followRedirects": {
+          "type": "boolean",
+          "default": true,
+          "description": "Follow HTTP redirects"
+        },
+        "curl-code.verifySSL": {
+          "type": "boolean",
+          "default": true,
+          "description": "Verify SSL certificates"
+        },
+        "curl-code.saveRequestHistory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Save request history"
+        },
+        "curl-code.maxHistoryItems": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum number of history items"
+        }
+      }
+    }
+  }
+}

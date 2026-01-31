@@ -1,0 +1,295 @@
+/**
+ * Service for managing HTTP request collections
+ */
+
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs/promises';
+import type { Collection, Folder } from '../types/collection';
+import type { HttpRequest } from '../types/request';
+import { createEmptyCollection, createEmptyFolder } from '../types/collection';
+
+export class CollectionService {
+    private collections: Collection[] = [];
+    private storageDir: string;
+    private onChangeEmitter = new vscode.EventEmitter<void>();
+    readonly onChange = this.onChangeEmitter.event;
+
+    constructor(private context: vscode.ExtensionContext) {
+        // Store collections in workspace .curl-code folder if workspace exists
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            this.storageDir = path.join(workspaceFolders[0].uri.fsPath, '.curl-code', 'collections');
+        } else {
+            // Fall back to global storage
+            this.storageDir = path.join(context.globalStorageUri.fsPath, 'collections');
+        }
+    }
+
+    /**
+     * Initialize the service and load collections
+     */
+    async initialize(): Promise<void> {
+        await this.ensureStorageDir();
+        await this.loadCollections();
+    }
+
+    /**
+     * Get all collections
+     */
+    getCollections(): Collection[] {
+        return this.collections;
+    }
+
+    /**
+     * Get a collection by ID
+     */
+    getCollection(id: string): Collection | undefined {
+        return this.collections.find(c => c.id === id);
+    }
+
+    /**
+     * Create a new collection
+     */
+    async createCollection(name: string, description?: string): Promise<Collection> {
+        const collection = createEmptyCollection(name);
+        if (description) {
+            collection.description = description;
+        }
+        this.collections.push(collection);
+        await this.saveCollection(collection);
+        this.onChangeEmitter.fire();
+        return collection;
+    }
+
+    /**
+     * Update a collection
+     */
+    async updateCollection(id: string, updates: Partial<Collection>): Promise<Collection | undefined> {
+        const index = this.collections.findIndex(c => c.id === id);
+        if (index === -1) return undefined;
+
+        this.collections[index] = {
+            ...this.collections[index],
+            ...updates,
+            updatedAt: Date.now()
+        };
+        await this.saveCollection(this.collections[index]);
+        this.onChangeEmitter.fire();
+        return this.collections[index];
+    }
+
+    /**
+     * Delete a collection
+     */
+    async deleteCollection(id: string): Promise<boolean> {
+        const index = this.collections.findIndex(c => c.id === id);
+        if (index === -1) return false;
+
+        const collection = this.collections[index];
+        this.collections.splice(index, 1);
+
+        // Delete the file
+        const filePath = path.join(this.storageDir, `${collection.id}.json`);
+        try {
+            await fs.unlink(filePath);
+        } catch {
+            // File might not exist
+        }
+
+        this.onChangeEmitter.fire();
+        return true;
+    }
+
+    /**
+     * Add a folder to a collection
+     */
+    async addFolder(collectionId: string, name: string, parentFolderId?: string): Promise<Folder | undefined> {
+        const collection = this.getCollection(collectionId);
+        if (!collection) return undefined;
+
+        const folder = createEmptyFolder(name, parentFolderId);
+
+        if (parentFolderId) {
+            const parentFolder = this.findFolder(collection, parentFolderId);
+            if (parentFolder) {
+                parentFolder.folders.push(folder);
+            }
+        } else {
+            collection.folders.push(folder);
+        }
+
+        await this.saveCollection(collection);
+        this.onChangeEmitter.fire();
+        return folder;
+    }
+
+    /**
+     * Save a request to a collection
+     */
+    async saveRequest(request: HttpRequest, collectionId?: string, folderId?: string): Promise<void> {
+        let collection: Collection | undefined;
+
+        if (collectionId) {
+            collection = this.getCollection(collectionId);
+        } else {
+            // Create a default collection if none exists
+            if (this.collections.length === 0) {
+                collection = await this.createCollection('Default Collection');
+            } else {
+                collection = this.collections[0];
+            }
+        }
+
+        if (!collection) return;
+
+        request.collectionId = collection.id;
+        request.folderId = folderId;
+        request.updatedAt = Date.now();
+
+        // Find existing request or add new
+        if (folderId) {
+            const folder = this.findFolder(collection, folderId);
+            if (folder) {
+                const existingIndex = folder.requests.findIndex(r => r.id === request.id);
+                if (existingIndex >= 0) {
+                    folder.requests[existingIndex] = request;
+                } else {
+                    folder.requests.push(request);
+                }
+            }
+        } else {
+            const existingIndex = collection.requests.findIndex(r => r.id === request.id);
+            if (existingIndex >= 0) {
+                collection.requests[existingIndex] = request;
+            } else {
+                collection.requests.push(request);
+            }
+        }
+
+        await this.saveCollection(collection);
+        this.onChangeEmitter.fire();
+    }
+
+    /**
+     * Delete a request from a collection
+     */
+    async deleteRequest(requestId: string, collectionId: string, folderId?: string): Promise<boolean> {
+        const collection = this.getCollection(collectionId);
+        if (!collection) return false;
+
+        if (folderId) {
+            const folder = this.findFolder(collection, folderId);
+            if (folder) {
+                const index = folder.requests.findIndex(r => r.id === requestId);
+                if (index >= 0) {
+                    folder.requests.splice(index, 1);
+                    await this.saveCollection(collection);
+                    this.onChangeEmitter.fire();
+                    return true;
+                }
+            }
+        } else {
+            const index = collection.requests.findIndex(r => r.id === requestId);
+            if (index >= 0) {
+                collection.requests.splice(index, 1);
+                await this.saveCollection(collection);
+                this.onChangeEmitter.fire();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Export a collection to JSON
+     */
+    async exportCollection(collectionId: string): Promise<string | undefined> {
+        const collection = this.getCollection(collectionId);
+        if (!collection) return undefined;
+        return JSON.stringify(collection, null, 2);
+    }
+
+    /**
+     * Import a collection from JSON
+     */
+    async importCollection(json: string): Promise<Collection | undefined> {
+        try {
+            const collection = JSON.parse(json) as Collection;
+            // Assign a new ID to avoid conflicts
+            collection.id = `col_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+            collection.createdAt = Date.now();
+            collection.updatedAt = Date.now();
+
+            this.collections.push(collection);
+            await this.saveCollection(collection);
+            this.onChangeEmitter.fire();
+            return collection;
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * Find a folder by ID within a collection
+     */
+    private findFolder(collection: Collection, folderId: string): Folder | undefined {
+        const search = (folders: Folder[]): Folder | undefined => {
+            for (const folder of folders) {
+                if (folder.id === folderId) return folder;
+                const found = search(folder.folders);
+                if (found) return found;
+            }
+            return undefined;
+        };
+        return search(collection.folders);
+    }
+
+    /**
+     * Ensure storage directory exists
+     */
+    private async ensureStorageDir(): Promise<void> {
+        try {
+            await fs.mkdir(this.storageDir, { recursive: true });
+        } catch {
+            // Directory might already exist
+        }
+    }
+
+    /**
+     * Load all collections from storage
+     */
+    private async loadCollections(): Promise<void> {
+        try {
+            const files = await fs.readdir(this.storageDir);
+            const jsonFiles = files.filter(f => f.endsWith('.json'));
+
+            this.collections = [];
+            for (const file of jsonFiles) {
+                try {
+                    const content = await fs.readFile(path.join(this.storageDir, file), 'utf-8');
+                    const collection = JSON.parse(content) as Collection;
+                    this.collections.push(collection);
+                } catch {
+                    // Skip invalid files
+                }
+            }
+
+            // Sort by name
+            this.collections.sort((a, b) => a.name.localeCompare(b.name));
+        } catch {
+            // Directory might not exist yet
+            this.collections = [];
+        }
+    }
+
+    /**
+     * Save a collection to storage
+     */
+    private async saveCollection(collection: Collection): Promise<void> {
+        await this.ensureStorageDir();
+        const filePath = path.join(this.storageDir, `${collection.id}.json`);
+        await fs.writeFile(filePath, JSON.stringify(collection, null, 2), 'utf-8');
+    }
+}
