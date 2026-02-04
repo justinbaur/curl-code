@@ -66,19 +66,35 @@ export interface HttpResponse {
   curlCommand: string;
 }
 
+export interface EnvironmentVariable {
+  key: string;
+  value: string;
+  type: 'default' | 'secret';
+  enabled: boolean;
+}
+
+export interface Environment {
+  id: string;
+  name: string;
+  variables: EnvironmentVariable[];
+  isActive: boolean;
+}
+
 // Message types
 export type ExtensionMessage =
   | { type: 'loadRequest'; request: HttpRequest }
   | { type: 'responseReceived'; response: HttpResponse }
   | { type: 'requestError'; error: string }
   | { type: 'requestStarted' }
-  | { type: 'requestCancelled' };
+  | { type: 'requestCancelled' }
+  | { type: 'loadEnvironments'; environments: Environment[]; activeId?: string };
 
 export type WebviewMessage =
   | { type: 'sendRequest'; request: HttpRequest }
   | { type: 'saveRequest'; request: HttpRequest }
   | { type: 'cancelRequest' }
   | { type: 'copyAsCurl'; request: HttpRequest }
+  | { type: 'selectEnvironment'; environmentId: string | null }
   | { type: 'ready' }
   | { type: 'openExternal'; url: string };
 

@@ -22,7 +22,7 @@ export type WebviewToExtensionMessage =
     | { type: 'saveRequest'; request: HttpRequest }
     | { type: 'cancelRequest' }
     | { type: 'copyAsCurl'; request: HttpRequest }
-    | { type: 'selectEnvironment'; environmentId: string }
+    | { type: 'selectEnvironment'; environmentId: string | null }
     | { type: 'ready' }
     | { type: 'openExternal'; url: string }
     | { type: 'updateRequest'; request: HttpRequest };

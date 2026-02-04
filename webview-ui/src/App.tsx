@@ -6,14 +6,17 @@ import { useEffect } from 'react';
 import { vscode } from './vscode';
 import { useRequestStore } from './state/requestStore';
 import { useResponseStore } from './state/responseStore';
+import { useEnvironmentStore } from './state/environmentStore';
 import { RequestBuilder } from './components/RequestBuilder/RequestBuilder';
 import { ResponseViewer } from './components/ResponseViewer/ResponseViewer';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
+import { EnvironmentPicker } from './components/common/EnvironmentPicker';
 
 export default function App() {
   const { request, setRequest, isLoading, setLoading } = useRequestStore();
   const { response, error, setResponse, setError, clearResponse } =
     useResponseStore();
+  const { setEnvironments } = useEnvironmentStore();
 
   useEffect(() => {
     // Notify extension that webview is ready
@@ -41,11 +44,14 @@ export default function App() {
         case 'requestCancelled':
           setLoading(false);
           break;
+        case 'loadEnvironments':
+          setEnvironments(message.environments, message.activeId);
+          break;
       }
     });
 
     return unsubscribe;
-  }, [setRequest, setResponse, setError, setLoading, clearResponse]);
+  }, [setRequest, setResponse, setError, setLoading, clearResponse, setEnvironments]);
 
   const handleSend = () => {
     if (request) {
@@ -82,6 +88,7 @@ export default function App() {
 
   return (
     <div className="app-container">
+      <EnvironmentPicker />
       <div className="request-panel">
         <RequestBuilder
           request={request}

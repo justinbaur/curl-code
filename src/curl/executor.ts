@@ -7,15 +7,18 @@ import * as vscode from 'vscode';
 import type { HttpRequest, HttpResponse } from '../types/request';
 import { ArgumentBuilder, type CurlOptions } from './argumentBuilder';
 import { ResponseParser } from './responseParser';
+import type { EnvironmentService } from '../services/EnvironmentService';
 
 export class CurlExecutor {
     private currentProcess: ChildProcess | null = null;
     private argumentBuilder: ArgumentBuilder;
     private responseParser: ResponseParser;
+    private environmentService: EnvironmentService | undefined;
 
-    constructor() {
+    constructor(environmentService?: EnvironmentService) {
         this.argumentBuilder = new ArgumentBuilder();
         this.responseParser = new ResponseParser();
+        this.environmentService = environmentService;
     }
 
     /**
@@ -26,7 +29,10 @@ export class CurlExecutor {
         const curlPath = config.get<string>('curlPath', 'curl');
         const options = this.getOptions(config);
 
-        const args = this.argumentBuilder.build(request, options);
+        // Interpolate environment variables in the request
+        const interpolatedRequest = this.interpolateVariables(request);
+
+        const args = this.argumentBuilder.build(interpolatedRequest, options);
         const startTime = Date.now();
 
         return new Promise((resolve, reject) => {
@@ -134,7 +140,51 @@ export class CurlExecutor {
     buildCurlCommand(request: HttpRequest): string {
         const config = vscode.workspace.getConfiguration('curl-code');
         const options = this.getOptions(config);
-        return this.argumentBuilder.buildCommand(request, options);
+        const interpolatedRequest = this.interpolateVariables(request);
+        return this.argumentBuilder.buildCommand(interpolatedRequest, options);
+    }
+
+    /**
+     * Interpolate environment variables in a request
+     */
+    private interpolateVariables(request: HttpRequest): HttpRequest {
+        if (!this.environmentService) {
+            return request;
+        }
+
+        // Create a deep copy to avoid mutating the original request
+        const interpolated: HttpRequest = {
+            ...request,
+            url: this.environmentService.resolveVariables(request.url),
+            headers: request.headers.map(header => ({
+                ...header,
+                key: this.environmentService!.resolveVariables(header.key),
+                value: this.environmentService!.resolveVariables(header.value)
+            })),
+            body: {
+                ...request.body,
+                content: this.environmentService.resolveVariables(request.body.content),
+                formData: request.body.formData?.map(field => ({
+                    ...field,
+                    key: this.environmentService!.resolveVariables(field.key),
+                    value: this.environmentService!.resolveVariables(field.value)
+                }))
+            },
+            queryParams: request.queryParams.map(param => ({
+                ...param,
+                key: this.environmentService!.resolveVariables(param.key),
+                value: this.environmentService!.resolveVariables(param.value)
+            })),
+            auth: {
+                ...request.auth,
+                username: request.auth.username ? this.environmentService.resolveVariables(request.auth.username) : undefined,
+                password: request.auth.password ? this.environmentService.resolveVariables(request.auth.password) : undefined,
+                token: request.auth.token ? this.environmentService.resolveVariables(request.auth.token) : undefined,
+                apiKeyValue: request.auth.apiKeyValue ? this.environmentService.resolveVariables(request.auth.apiKeyValue) : undefined
+            }
+        };
+
+        return interpolated;
     }
 
     /**

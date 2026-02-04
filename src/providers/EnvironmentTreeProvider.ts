@@ -6,7 +6,12 @@ import * as vscode from 'vscode';
 import type { Environment, EnvironmentVariable } from '../types/collection';
 import type { EnvironmentService } from '../services/EnvironmentService';
 
-type TreeItemData = Environment | EnvironmentVariable;
+// Extended variable with environment ID for tree operations
+interface VariableTreeItem extends EnvironmentVariable {
+    environmentId: string;
+}
+
+type TreeItemData = Environment | VariableTreeItem;
 
 export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItemData> {
     private _onDidChangeTreeData = new vscode.EventEmitter<TreeItemData | undefined | null>();
@@ -42,8 +47,11 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
         }
 
         if (this.isEnvironment(element)) {
-            // Environment children: variables
-            return element.variables.filter(v => v.enabled);
+            // Environment children: variables (with environment ID attached)
+            return element.variables.filter(v => v.enabled).map(v => ({
+                ...v,
+                environmentId: element.id
+            }));
         }
 
         return [];
@@ -75,7 +83,7 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
     /**
      * Create a tree item for an environment variable
      */
-    private createVariableItem(variable: EnvironmentVariable): vscode.TreeItem {
+    private createVariableItem(variable: VariableTreeItem): vscode.TreeItem {
         const item = new vscode.TreeItem(
             variable.key,
             vscode.TreeItemCollapsibleState.None
@@ -90,6 +98,9 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
             ? `${variable.key} (secret)`
             : `${variable.key} = ${variable.value}`;
 
+        // Store environment ID and variable key for command handlers
+        item.id = `${variable.environmentId}:${variable.key}`;
+
         return item;
     }
 
@@ -98,5 +109,12 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
      */
     private isEnvironment(item: TreeItemData): item is Environment {
         return 'variables' in item && 'isActive' in item;
+    }
+
+    /**
+     * Type guard for VariableTreeItem
+     */
+    private isVariable(item: TreeItemData): item is VariableTreeItem {
+        return 'environmentId' in item && 'key' in item && 'value' in item;
     }
 }

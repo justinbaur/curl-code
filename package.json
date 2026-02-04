@@ -129,6 +129,18 @@
         "category": "curl-code"
       },
       {
+        "command": "curl-code.editEnvironmentVariable",
+        "title": "Edit Variable",
+        "icon": "$(edit)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.deleteEnvironmentVariable",
+        "title": "Delete Variable",
+        "icon": "$(trash)",
+        "category": "curl-code"
+      },
+      {
         "command": "curl-code.refreshEnvironments",
         "title": "Refresh Environment",
         "icon": "$(play)",
@@ -138,6 +150,24 @@
         "command": "curl-code.newEnvironment",
         "title": "New Environment",
         "icon": "$(new-folder)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.setActiveEnvironment",
+        "title": "Set as Active Environment",
+        "icon": "$(check)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.deactivateEnvironment",
+        "title": "Deactivate Environment",
+        "icon": "$(circle-slash)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.deleteEnvironment",
+        "title": "Delete Environment",
+        "icon": "$(trash)",
         "category": "curl-code"
       },      
       {
@@ -224,6 +254,45 @@
         {
           "command": "curl-code.copyAsCurl",
           "when": "view == curl-code.collections && viewItem == request"
+        },
+        {
+          "command": "curl-code.setActiveEnvironment",
+          "when": "view == curl-code.environments && viewItem == environment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.setActiveEnvironment",
+          "when": "view == curl-code.environments && viewItem == environment"
+        },
+        {
+          "command": "curl-code.deactivateEnvironment",
+          "when": "view == curl-code.environments && viewItem == activeEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.deactivateEnvironment",
+          "when": "view == curl-code.environments && viewItem == activeEnvironment"
+        },
+        {
+          "command": "curl-code.deleteEnvironment",
+          "when": "view == curl-code.environments && viewItem == environment"
+        },
+        {
+          "command": "curl-code.deleteEnvironment",
+          "when": "view == curl-code.environments && viewItem == activeEnvironment"
+        },
+        {
+          "command": "curl-code.editEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == variable",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.editEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == variable"
+        },
+        {
+          "command": "curl-code.deleteEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == variable"
         }
       ],
       "editor/title": [

@@ -10,6 +10,7 @@ import { createEmptyRequest } from '../types/request';
 import { CurlExecutor } from '../curl/executor';
 import { CollectionService } from '../services/CollectionService';
 import { HistoryService } from '../services/HistoryService';
+import { EnvironmentService } from '../services/EnvironmentService';
 import { HttpFileParser } from '../parsers/httpFileParser';
 
 export class RequestPanelManager {
@@ -21,8 +22,16 @@ export class RequestPanelManager {
         private context: vscode.ExtensionContext,
         private curlExecutor: CurlExecutor,
         private collectionService: CollectionService,
-        private historyService: HistoryService
-    ) {}
+        private historyService: HistoryService,
+        private environmentService: EnvironmentService
+    ) {
+        // Listen for environment changes and update webview
+        this.environmentService.onChange(() => {
+            if (this.panel) {
+                this.sendEnvironments();
+            }
+        });
+    }
 
     /**
      * Open a new request in the webview
@@ -154,9 +163,13 @@ export class RequestPanelManager {
     private async handleMessage(message: WebviewToExtensionMessage): Promise<void> {
         switch (message.type) {
             case 'ready':
+                // Send current request
                 if (this.currentRequest) {
                     this.sendMessage({ type: 'loadRequest', request: this.currentRequest });
                 }
+
+                // Send environments
+                this.sendEnvironments();
                 break;
 
             case 'sendRequest':
@@ -188,7 +201,32 @@ export class RequestPanelManager {
             case 'updateRequest':
                 this.currentRequest = message.request;
                 break;
+
+            case 'selectEnvironment':
+                await this.environmentService.setActiveEnvironment(message.environmentId);
+                this.sendEnvironments();
+
+                if (message.environmentId) {
+                    const env = this.environmentService.getEnvironment(message.environmentId);
+                    vscode.window.showInformationMessage(`Environment "${env?.name}" is now active`);
+                } else {
+                    vscode.window.showInformationMessage('Environment deactivated');
+                }
+                break;
         }
+    }
+
+    /**
+     * Send environment data to the webview
+     */
+    private sendEnvironments(): void {
+        const environments = this.environmentService.getEnvironments();
+        const activeEnv = this.environmentService.getActiveEnvironment();
+        this.sendMessage({
+            type: 'loadEnvironments',
+            environments,
+            activeId: activeEnv?.id
+        });
     }
 
     /**

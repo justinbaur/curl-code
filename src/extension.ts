@@ -21,11 +21,13 @@ export async function activate(context: vscode.ExtensionContext) {
     const collectionService = new CollectionService(context);
     const historyService = new HistoryService(context);
     const environmentService = new EnvironmentService(context);
-    const curlExecutor = new CurlExecutor();
 
     await collectionService.initialize();
     await historyService.initialize();
     await environmentService.initialize();
+
+    // Initialize CurlExecutor with EnvironmentService for variable interpolation
+    const curlExecutor = new CurlExecutor(environmentService);
 
     // Check if cURL is available
     const curlAvailable = await curlExecutor.checkCurlAvailable();
@@ -60,17 +62,43 @@ export async function activate(context: vscode.ExtensionContext) {
         treeDataProvider: environmentProvider
     });
 
+    // Create status bar item for active environment
+    const statusBarItem = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        100
+    );
+    statusBarItem.command = 'curl-code.quickSwitchEnvironment';
+    statusBarItem.tooltip = 'Click to switch environment';
+
+    // Update status bar when environment changes
+    const updateStatusBar = () => {
+        const activeEnv = environmentService.getActiveEnvironment();
+        if (activeEnv) {
+            statusBarItem.text = `$(globe) ${activeEnv.name}`;
+            statusBarItem.show();
+        } else {
+            statusBarItem.text = '$(globe) No Environment';
+            statusBarItem.show();
+        }
+    };
+
+    updateStatusBar();
+
     // Listen for service changes and refresh tree views
     collectionService.onChange(() => collectionsProvider.refresh());
     historyService.onChange(() => historyProvider.refresh());
-    environmentService.onChange(() => environmentProvider.refresh());
+    environmentService.onChange(() => {
+        environmentProvider.refresh();
+        updateStatusBar();
+    });
 
     // Initialize webview manager
     const requestPanelManager = new RequestPanelManager(
         context,
         curlExecutor,
         collectionService,
-        historyService
+        historyService,
+        environmentService
     );
 
     // Register commands
@@ -173,25 +201,135 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('curl-code.newEnvironmentVariable', async (item) => {
             const name = await vscode.window.showInputBox({
                 prompt: 'Enter variable name',
-                placeHolder: 'My variable key'
+                placeHolder: 'api_key'
             });
             const value = await vscode.window.showInputBox({
                 prompt: 'Enter variable value',
-                placeHolder: 'My variable value'
+                placeHolder: 'your-api-key-here'
             });
-            // const type = await vscode.window.showInputBox({
-            //     prompt: 'Enter variable type',
-            //     placeHolder: 'default'
-            // });
 
-            // TODO: check item if its a tree item and get parent id for env
             if (name && value){
                 await environmentService.addVariable(item.id, name, value);
             }
         }),
 
+        vscode.commands.registerCommand('curl-code.editEnvironmentVariable', async (item) => {
+            // Item is a VariableTreeItem with environmentId, key, value, type, enabled
+            if (!item?.environmentId || !item?.key) {
+                return;
+            }
+
+            const environmentId = item.environmentId;
+            const variableKey = item.key;
+
+            const newValue = await vscode.window.showInputBox({
+                prompt: `Edit value for "${variableKey}"`,
+                value: item.type === 'secret' ? '' : item.value,
+                placeHolder: item.type === 'secret' ? 'Enter new secret value' : 'Enter new value',
+                password: item.type === 'secret'
+            });
+
+            if (newValue !== undefined) {
+                await environmentService.updateVariable(environmentId, variableKey, { value: newValue });
+                vscode.window.showInformationMessage(`Variable "${variableKey}" updated`);
+            }
+        }),
+
+        vscode.commands.registerCommand('curl-code.deleteEnvironmentVariable', async (item) => {
+            // Item is a VariableTreeItem with environmentId, key, value, type, enabled
+            if (!item?.environmentId || !item?.key) {
+                return;
+            }
+
+            const environmentId = item.environmentId;
+            const variableKey = item.key;
+
+            const confirm = await vscode.window.showWarningMessage(
+                `Delete variable "${variableKey}"?`,
+                { modal: true },
+                'Delete'
+            );
+
+            if (confirm === 'Delete') {
+                await environmentService.deleteVariable(environmentId, variableKey);
+                vscode.window.showInformationMessage(`Variable "${variableKey}" deleted`);
+            }
+        }),
+
         vscode.commands.registerCommand('curl-code.refreshEnvironments', () => {
             environmentProvider.refresh();
+        }),
+
+        vscode.commands.registerCommand('curl-code.setActiveEnvironment', async (item) => {
+            if (item?.id) {
+                await environmentService.setActiveEnvironment(item.id);
+                vscode.window.showInformationMessage(`Environment "${item.name}" is now active`);
+            }
+        }),
+
+        vscode.commands.registerCommand('curl-code.deactivateEnvironment', async () => {
+            await environmentService.setActiveEnvironment(null);
+            vscode.window.showInformationMessage('Environment deactivated');
+        }),
+
+        vscode.commands.registerCommand('curl-code.deleteEnvironment', async (item) => {
+            if (!item?.id || !item?.name) {
+                return;
+            }
+
+            const confirm = await vscode.window.showWarningMessage(
+                `Delete environment "${item.name}"? This will delete all variables in this environment.`,
+                { modal: true },
+                'Delete'
+            );
+
+            if (confirm === 'Delete') {
+                await environmentService.deleteEnvironment(item.id);
+                vscode.window.showInformationMessage(`Environment "${item.name}" deleted`);
+            }
+        }),
+
+        vscode.commands.registerCommand('curl-code.quickSwitchEnvironment', async () => {
+            const environments = environmentService.getEnvironments();
+            const activeEnv = environmentService.getActiveEnvironment();
+
+            if (environments.length === 0) {
+                const action = await vscode.window.showInformationMessage(
+                    'No environments found',
+                    'Create Environment'
+                );
+                if (action === 'Create Environment') {
+                    vscode.commands.executeCommand('curl-code.newEnvironment');
+                }
+                return;
+            }
+
+            const items = [
+                {
+                    label: '$(circle-slash) No Environment',
+                    description: activeEnv === undefined ? '(current)' : '',
+                    id: null
+                },
+                ...environments.map(env => ({
+                    label: `$(${env.isActive ? 'check' : 'circle-outline'}) ${env.name}`,
+                    description: env.isActive ? '(current)' : `${env.variables.length} variables`,
+                    id: env.id
+                }))
+            ];
+
+            const selected = await vscode.window.showQuickPick(items, {
+                placeHolder: 'Select an environment'
+            });
+
+            if (selected) {
+                await environmentService.setActiveEnvironment(selected.id);
+                if (selected.id) {
+                    const env = environmentService.getEnvironment(selected.id);
+                    vscode.window.showInformationMessage(`Environment "${env?.name}" is now active`);
+                } else {
+                    vscode.window.showInformationMessage('Environment deactivated');
+                }
+            }
         }),
 
         // History commands
@@ -249,6 +387,7 @@ export async function activate(context: vscode.ExtensionContext) {
         historyView,
         environmentView,
         requestPanelManager,
+        statusBarItem,
         {
             dispose: () => {
                 collectionService.onChange(() => {});
