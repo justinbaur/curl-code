@@ -11,6 +11,7 @@ export interface Collection {
     folders: Folder[];
     requests: HttpRequest[];
     variables: CollectionVariable[];
+    environments?: Environment[];  // Collection-scoped environments
     createdAt: number;
     updatedAt: number;
 }

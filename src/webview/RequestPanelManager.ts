@@ -6,17 +6,19 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import type { HttpRequest, HttpResponse } from '../types/request';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../types/messages';
-import { createEmptyRequest } from '../types/request';
+import { createEmptyRequest, normalizeRequest } from '../types/request';
 import { CurlExecutor } from '../curl/executor';
 import { CollectionService } from '../services/CollectionService';
 import { HistoryService } from '../services/HistoryService';
 import { EnvironmentService } from '../services/EnvironmentService';
 import { HttpFileParser } from '../parsers/httpFileParser';
+import { Logger } from '../utils/Logger';
 
 export class RequestPanelManager {
     private panel: vscode.WebviewPanel | undefined;
     private currentRequest: HttpRequest | undefined;
     private disposables: vscode.Disposable[] = [];
+    private logger = Logger.getInstance();
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -25,6 +27,7 @@ export class RequestPanelManager {
         private historyService: HistoryService,
         private environmentService: EnvironmentService
     ) {
+        this.logger.info('RequestPanelManager initialized');
         // Listen for environment changes and update webview
         this.environmentService.onChange(() => {
             if (this.panel) {
@@ -45,15 +48,36 @@ export class RequestPanelManager {
      * Open an existing request in the webview
      */
     openRequest(request: HttpRequest): void {
-        this.currentRequest = request;
+        try {
+            // Normalize the request to ensure all required fields exist
+            const normalizedRequest = normalizeRequest(request);
 
-        if (this.panel) {
-            this.panel.reveal(vscode.ViewColumn.One);
-            this.sendMessage({ type: 'loadRequest', request });
-            return;
+            this.logger.info('Opening request', {
+                id: normalizedRequest.id,
+                name: normalizedRequest.name,
+                method: normalizedRequest.method,
+                url: normalizedRequest.url,
+                hasHeaders: normalizedRequest.headers?.length > 0,
+                hasQueryParams: normalizedRequest.queryParams?.length > 0,
+                hasBody: normalizedRequest.body !== undefined,
+                hasAuth: normalizedRequest.auth !== undefined
+            });
+
+            this.currentRequest = normalizedRequest;
+
+            if (this.panel) {
+                this.logger.debug('Reusing existing panel');
+                this.panel.reveal(vscode.ViewColumn.One);
+                this.sendMessage({ type: 'loadRequest', request: normalizedRequest });
+                return;
+            }
+
+            this.logger.debug('Creating new panel');
+            this.createPanel();
+        } catch (error) {
+            this.logger.error('Failed to open request', error);
+            vscode.window.showErrorMessage(`Failed to open request: ${error instanceof Error ? error.message : String(error)}`);
         }
-
-        this.createPanel();
     }
 
     /**
@@ -123,54 +147,80 @@ export class RequestPanelManager {
      * Create the webview panel
      */
     private createPanel(): void {
-        this.panel = vscode.window.createWebviewPanel(
-            'curl-code.requestBuilder',
-            'curl-code',
-            vscode.ViewColumn.One,
-            {
-                enableScripts: true,
-                retainContextWhenHidden: true,
-                localResourceRoots: [
-                    vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview')
-                ]
-            }
-        );
+        try {
+            this.logger.info('Creating webview panel');
 
-        this.panel.webview.html = this.getWebviewContent(this.panel.webview);
-        this.panel.iconPath = vscode.Uri.joinPath(
-            this.context.extensionUri,
-            'media',
-            'icons',
-            'curl-code.png'
-        );
+            this.panel = vscode.window.createWebviewPanel(
+                'curl-code.requestBuilder',
+                'curl-code',
+                vscode.ViewColumn.One,
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: true,
+                    localResourceRoots: [
+                        vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview')
+                    ]
+                }
+            );
 
-        // Handle messages from webview
-        this.panel.webview.onDidReceiveMessage(
-            (message: WebviewToExtensionMessage) => this.handleMessage(message),
-            undefined,
-            this.disposables
-        );
+            this.logger.debug('Setting webview HTML content');
+            this.panel.webview.html = this.getWebviewContent(this.panel.webview);
 
-        // Handle panel disposal
-        this.panel.onDidDispose(() => {
-            this.panel = undefined;
-        }, null, this.disposables);
+            this.panel.iconPath = vscode.Uri.joinPath(
+                this.context.extensionUri,
+                'media',
+                'icons',
+                'curl-code.png'
+            );
+
+            // Handle messages from webview
+            this.panel.webview.onDidReceiveMessage(
+                (message: WebviewToExtensionMessage) => {
+                    this.logger.debug('Received message from webview', { type: message.type });
+                    this.handleMessage(message);
+                },
+                undefined,
+                this.disposables
+            );
+
+            // Handle panel disposal
+            this.panel.onDidDispose(() => {
+                this.logger.info('Webview panel disposed');
+                this.panel = undefined;
+            }, null, this.disposables);
+
+            this.logger.info('Webview panel created successfully');
+        } catch (error) {
+            this.logger.error('Failed to create webview panel', error);
+            vscode.window.showErrorMessage(`Failed to create request panel: ${error instanceof Error ? error.message : String(error)}`);
+            throw error;
+        }
     }
 
     /**
      * Handle messages from the webview
      */
     private async handleMessage(message: WebviewToExtensionMessage): Promise<void> {
-        switch (message.type) {
-            case 'ready':
-                // Send current request
-                if (this.currentRequest) {
-                    this.sendMessage({ type: 'loadRequest', request: this.currentRequest });
-                }
+        try {
+            this.logger.debug(`Handling webview message: ${message.type}`);
 
-                // Send environments
-                this.sendEnvironments();
-                break;
+            switch (message.type) {
+                case 'ready':
+                    this.logger.info('Webview ready, sending initial data');
+                    // Send current request
+                    if (this.currentRequest) {
+                        this.logger.debug('Sending current request to webview', {
+                            requestId: this.currentRequest.id,
+                            requestName: this.currentRequest.name
+                        });
+                        this.sendMessage({ type: 'loadRequest', request: this.currentRequest });
+                    } else {
+                        this.logger.warn('No current request to send to webview');
+                    }
+
+                    // Send environments
+                    this.sendEnvironments();
+                    break;
 
             case 'sendRequest':
                 this.currentRequest = message.request;
@@ -203,16 +253,83 @@ export class RequestPanelManager {
                 break;
 
             case 'selectEnvironment':
-                await this.environmentService.setActiveEnvironment(message.environmentId);
-                this.sendEnvironments();
-
                 if (message.environmentId) {
-                    const env = this.environmentService.getEnvironment(message.environmentId);
-                    vscode.window.showInformationMessage(`Environment "${env?.name}" is now active`);
+                    let environmentName: string | undefined;
+
+                    // Check if it's a global environment
+                    const globalEnv = this.environmentService.getEnvironment(message.environmentId);
+
+                    if (globalEnv) {
+                        // It's a global environment
+                        environmentName = globalEnv.name;
+                        await this.environmentService.setActiveEnvironment(message.environmentId);
+                    } else {
+                        // Check if it's a collection environment
+                        const collections = this.collectionService.getCollections();
+                        let found = false;
+
+                        for (const collection of collections) {
+                            if (collection.environments) {
+                                const envIndex = collection.environments.findIndex(e => e.id === message.environmentId);
+                                if (envIndex !== -1) {
+                                    // Get the environment name
+                                    environmentName = collection.environments[envIndex].name;
+
+                                    // Deactivate all environments in this collection
+                                    collection.environments.forEach(e => e.isActive = false);
+                                    // Activate the selected environment
+                                    collection.environments[envIndex].isActive = true;
+                                    // Save the collection
+                                    await this.collectionService.updateCollection(collection.id, collection);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!found) {
+                            vscode.window.showErrorMessage('Environment not found');
+                            break;
+                        }
+
+                        // Deactivate global environments
+                        await this.environmentService.setActiveEnvironment(null);
+                    }
+
+                    this.sendEnvironments();
+
+                    if (environmentName) {
+                        vscode.window.showInformationMessage(`Environment "${environmentName}" is now active`);
+                    }
                 } else {
+                    // Deactivate all environments
+                    await this.environmentService.setActiveEnvironment(null);
+
+                    // Deactivate all collection environments
+                    const collections = this.collectionService.getCollections();
+                    for (const collection of collections) {
+                        if (collection.environments) {
+                            let needsUpdate = false;
+                            collection.environments.forEach(e => {
+                                if (e.isActive) {
+                                    e.isActive = false;
+                                    needsUpdate = true;
+                                }
+                            });
+                            if (needsUpdate) {
+                                await this.collectionService.updateCollection(collection.id, collection);
+                            }
+                        }
+                    }
+
+                    this.sendEnvironments();
                     vscode.window.showInformationMessage('Environment deactivated');
                 }
                 break;
+        }
+        } catch (error) {
+            this.logger.error(`Error handling webview message: ${message.type}`, error);
+            vscode.window.showErrorMessage(`Error processing request: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -220,12 +337,44 @@ export class RequestPanelManager {
      * Send environment data to the webview
      */
     private sendEnvironments(): void {
-        const environments = this.environmentService.getEnvironments();
+        // Get global environments
+        const globalEnvironments = this.environmentService.getEnvironments();
+
+        // Get collection environments
+        const collectionEnvironments: any[] = [];
+        const collections = this.collectionService.getCollections();
+        for (const collection of collections) {
+            if (collection.environments && collection.environments.length > 0) {
+                // Add collection name to environment for display
+                collectionEnvironments.push(...collection.environments.map(env => ({
+                    ...env,
+                    // Add a display name that includes the collection
+                    name: `${collection.name} / ${env.name}`
+                })));
+            }
+        }
+
+        // Combine both types of environments
+        const allEnvironments = [...globalEnvironments, ...collectionEnvironments];
+
+        // Find active environment from either global or collection environments
         const activeEnv = this.environmentService.getActiveEnvironment();
+        let activeId: string | undefined = undefined;
+
+        if (activeEnv) {
+            activeId = activeEnv.id;
+        } else {
+            // Check if any environment is marked as active (including collection environments)
+            const activeCollectionEnv = collectionEnvironments.find(env => env.isActive);
+            if (activeCollectionEnv) {
+                activeId = activeCollectionEnv.id;
+            }
+        }
+
         this.sendMessage({
             type: 'loadEnvironments',
-            environments,
-            activeId: activeEnv?.id
+            environments: allEnvironments,
+            activeId
         });
     }
 

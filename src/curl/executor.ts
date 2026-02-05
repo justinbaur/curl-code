@@ -8,17 +8,20 @@ import type { HttpRequest, HttpResponse } from '../types/request';
 import { ArgumentBuilder, type CurlOptions } from './argumentBuilder';
 import { ResponseParser } from './responseParser';
 import type { EnvironmentService } from '../services/EnvironmentService';
+import type { CollectionService } from '../services/CollectionService';
 
 export class CurlExecutor {
     private currentProcess: ChildProcess | null = null;
     private argumentBuilder: ArgumentBuilder;
     private responseParser: ResponseParser;
     private environmentService: EnvironmentService | undefined;
+    private collectionService: CollectionService | undefined;
 
-    constructor(environmentService?: EnvironmentService) {
+    constructor(environmentService?: EnvironmentService, collectionService?: CollectionService) {
         this.argumentBuilder = new ArgumentBuilder();
         this.responseParser = new ResponseParser();
         this.environmentService = environmentService;
+        this.collectionService = collectionService;
     }
 
     /**
@@ -152,35 +155,60 @@ export class CurlExecutor {
             return request;
         }
 
+        // Create a resolver function that checks both global and collection environments
+        const resolveVar = (text: string): string => {
+            // First try global environment
+            let result = this.environmentService!.resolveVariables(text);
+
+            // If no substitution happened and we have collection service, try collection environments
+            if (result === text && this.collectionService) {
+                const collections = this.collectionService.getCollections();
+                for (const collection of collections) {
+                    if (collection.environments) {
+                        const activeEnv = collection.environments.find(e => e.isActive);
+                        if (activeEnv) {
+                            result = text.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
+                                const variable = activeEnv.variables.find(v => v.key === varName && v.enabled);
+                                return variable ? variable.value : match;
+                            });
+                            if (result !== text) break; // Found a match, stop searching
+                        }
+                    }
+                }
+            }
+
+            return result;
+        };
+
         // Create a deep copy to avoid mutating the original request
         const interpolated: HttpRequest = {
             ...request,
-            url: this.environmentService.resolveVariables(request.url),
+            url: resolveVar(request.url),
             headers: request.headers.map(header => ({
                 ...header,
-                key: this.environmentService!.resolveVariables(header.key),
-                value: this.environmentService!.resolveVariables(header.value)
+                key: resolveVar(header.key),
+                value: resolveVar(header.value)
             })),
             body: {
                 ...request.body,
-                content: this.environmentService.resolveVariables(request.body.content),
+                content: resolveVar(request.body.content),
                 formData: request.body.formData?.map(field => ({
                     ...field,
-                    key: this.environmentService!.resolveVariables(field.key),
-                    value: this.environmentService!.resolveVariables(field.value)
+                    key: resolveVar(field.key),
+                    value: resolveVar(field.value)
                 }))
             },
             queryParams: request.queryParams.map(param => ({
                 ...param,
-                key: this.environmentService!.resolveVariables(param.key),
-                value: this.environmentService!.resolveVariables(param.value)
+                key: resolveVar(param.key),
+                value: resolveVar(param.value)
             })),
             auth: {
                 ...request.auth,
-                username: request.auth.username ? this.environmentService.resolveVariables(request.auth.username) : undefined,
-                password: request.auth.password ? this.environmentService.resolveVariables(request.auth.password) : undefined,
-                token: request.auth.token ? this.environmentService.resolveVariables(request.auth.token) : undefined,
-                apiKeyValue: request.auth.apiKeyValue ? this.environmentService.resolveVariables(request.auth.apiKeyValue) : undefined
+                username: request.auth.username ? resolveVar(request.auth.username) : undefined,
+                password: request.auth.password ? resolveVar(request.auth.password) : undefined,
+                token: request.auth.token ? resolveVar(request.auth.token) : undefined,
+                apiKeyValue: request.auth.apiKeyValue ? resolveVar(request.auth.apiKeyValue) : undefined
             }
         };
 

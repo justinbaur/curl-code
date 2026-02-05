@@ -1,0 +1,206 @@
+{
+  "id": "col_test_complete",
+  "name": "Complete API Example",
+  "description": "Complete test collection demonstrating environment variable usage",
+  "folders": [],
+  "requests": [
+    {
+      "id": "req_get_users",
+      "name": "Get All Users",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/users",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{apiKey}}",
+          "enabled": true
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json",
+          "enabled": true
+        }
+      ],
+      "queryParams": [
+        {
+          "key": "limit",
+          "value": "10",
+          "enabled": true
+        }
+      ],
+      "body": {
+        "type": "none",
+        "content": "",
+        "formData": []
+      },
+      "auth": {
+        "type": "none"
+      },
+      "createdAt": 1738677600000,
+      "updatedAt": 1738677600000
+    },
+    {
+      "id": "req_create_user",
+      "name": "Create User",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/users",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{apiKey}}",
+          "enabled": true
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json",
+          "enabled": true
+        }
+      ],
+      "queryParams": [],
+      "body": {
+        "type": "json",
+        "content": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\"\n}",
+        "formData": []
+      },
+      "auth": {
+        "type": "none"
+      },
+      "createdAt": 1738677600000,
+      "updatedAt": 1738677600000
+    },
+    {
+      "id": "req_get_user",
+      "name": "Get User by ID",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/users/{{userId}}",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{apiKey}}",
+          "enabled": true
+        }
+      ],
+      "queryParams": [],
+      "body": {
+        "type": "none",
+        "content": "",
+        "formData": []
+      },
+      "auth": {
+        "type": "none"
+      },
+      "createdAt": 1738677600000,
+      "updatedAt": 1738677600000
+    },
+    {
+      "id": "req_health_check",
+      "name": "Health Check",
+      "method": "GET",
+      "url": "{{baseUrl}}/health",
+      "headers": [],
+      "queryParams": [],
+      "body": {
+        "type": "none",
+        "content": "",
+        "formData": []
+      },
+      "auth": {
+        "type": "none"
+      },
+      "createdAt": 1738677600000,
+      "updatedAt": 1738677600000
+    }
+  ],
+  "variables": [],
+  "environments": [
+    {
+      "id": "env_local",
+      "name": "Local Development",
+      "isActive": false,
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "http://localhost:3000",
+          "type": "default",
+          "enabled": true
+        },
+        {
+          "key": "apiKey",
+          "value": "dev-local-key-12345",
+          "type": "secret",
+          "enabled": true
+        },
+        {
+          "key": "userId",
+          "value": "1",
+          "type": "default",
+          "enabled": true
+        },
+        {
+          "key": "debugMode",
+          "value": "true",
+          "type": "default",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "env_staging",
+      "name": "Staging",
+      "isActive": false,
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "https://staging-api.example.com",
+          "type": "default",
+          "enabled": true
+        },
+        {
+          "key": "apiKey",
+          "value": "staging-secret-key-67890",
+          "type": "secret",
+          "enabled": true
+        },
+        {
+          "key": "userId",
+          "value": "123",
+          "type": "default",
+          "enabled": true
+        },
+        {
+          "key": "debugMode",
+          "value": "false",
+          "type": "default",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "env_production",
+      "name": "Production",
+      "isActive": false,
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "https://api.example.com",
+          "type": "default",
+          "enabled": true
+        },
+        {
+          "key": "apiKey",
+          "value": "prod-secret-key-abcdef",
+          "type": "secret",
+          "enabled": true
+        },
+        {
+          "key": "userId",
+          "value": "456",
+          "type": "default",
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "createdAt": 1738677600000,
+  "updatedAt": 1738677600000
+}

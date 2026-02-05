@@ -216,17 +216,50 @@ export class CollectionService {
      */
     async importCollection(json: string): Promise<Collection | undefined> {
         try {
-            const collection = JSON.parse(json) as Collection;
-            // Assign a new ID to avoid conflicts
-            collection.id = `col_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-            collection.createdAt = Date.now();
-            collection.updatedAt = Date.now();
+            const parsed = JSON.parse(json) as Collection;
 
-            this.collections.push(collection);
-            await this.saveCollection(collection);
+            // Check if collection with same name exists
+            const existingCollection = this.collections.find(c => c.name === parsed.name);
+
+            if (existingCollection) {
+                // Prompt user
+                const choice = await vscode.window.showWarningMessage(
+                    `A collection named "${parsed.name}" already exists. Do you want to replace it?`,
+                    'Replace', 'Cancel'
+                );
+
+                if (choice !== 'Replace') {
+                    return undefined;
+                }
+
+                // Delete existing collection
+                await this.deleteCollection(existingCollection.id);
+            }
+
+            // Generate new ID
+            const newCollection = {
+                ...parsed,
+                id: `col_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+
+            // Import environments if present
+            if (newCollection.environments && newCollection.environments.length > 0) {
+                // Validate and regenerate environment IDs with composite format
+                newCollection.environments = newCollection.environments.map(env => ({
+                    ...env,
+                    id: `${newCollection.name}_${env.name}`, // Composite ID: collectionName_envName
+                    isActive: false // Imported environments are not active by default
+                }));
+            }
+
+            this.collections.push(newCollection);
+            await this.saveCollection(newCollection);
             this.onChangeEmitter.fire();
-            return collection;
-        } catch {
+            return newCollection;
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to import collection: ${error}`);
             return undefined;
         }
     }

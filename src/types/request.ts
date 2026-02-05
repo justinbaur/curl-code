@@ -105,3 +105,28 @@ export function createEmptyRequest(): HttpRequest {
 export function generateId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
+
+/**
+ * Normalize a request object by filling in any missing required fields with defaults.
+ * This ensures requests from collections or other sources have all required fields.
+ */
+export function normalizeRequest(request: Partial<HttpRequest>): HttpRequest {
+    return {
+        id: request.id || generateId(),
+        name: request.name || 'Untitled Request',
+        method: request.method || 'GET',
+        url: request.url || '',
+        headers: request.headers || [],
+        queryParams: request.queryParams || [],
+        body: {
+            type: request.body?.type || 'none',
+            content: request.body?.content || '',
+            formData: request.body?.formData || []
+        },
+        auth: request.auth || { type: 'none' },
+        collectionId: request.collectionId,
+        folderId: request.folderId,
+        createdAt: request.createdAt || Date.now(),
+        updatedAt: request.updatedAt || Date.now()
+    };
+}

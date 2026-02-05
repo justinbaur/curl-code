@@ -1,0 +1,25 @@
+{
+  "id": "col_test_456",
+  "name": "API Testing",
+  "description": "Duplicate test collection to verify collision handling",
+  "folders": [],
+  "requests": [],
+  "variables": [],
+  "environments": [
+    {
+      "id": "env_local",
+      "name": "Local",
+      "isActive": false,
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "http://localhost:8080",
+          "type": "default",
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "createdAt": 1738677600000,
+  "updatedAt": 1738677600000
+}

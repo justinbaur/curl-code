@@ -123,6 +123,12 @@
         "category": "curl-code"
       },
       {
+        "command": "curl-code.deleteCollection",
+        "title": "Delete Collection",
+        "icon": "$(trash)",
+        "category": "curl-code"
+      },
+      {
         "command": "curl-code.newEnvironmentVariable",
         "title": "New Environment Variable",
         "icon": "$(add)",
@@ -252,6 +258,10 @@
           "when": "view == curl-code.collections && viewItem == collection"
         },
         {
+          "command": "curl-code.deleteCollection",
+          "when": "view == curl-code.collections && viewItem == collection"
+        },
+        {
           "command": "curl-code.copyAsCurl",
           "when": "view == curl-code.collections && viewItem == request"
         },
@@ -265,6 +275,24 @@
           "when": "view == curl-code.environments && viewItem == environment"
         },
         {
+          "command": "curl-code.setActiveEnvironment",
+          "when": "view == curl-code.environments && viewItem == globalEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.setActiveEnvironment",
+          "when": "view == curl-code.environments && viewItem == globalEnvironment"
+        },
+        {
+          "command": "curl-code.setActiveEnvironment",
+          "when": "view == curl-code.environments && viewItem == collectionEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.setActiveEnvironment",
+          "when": "view == curl-code.environments && viewItem == collectionEnvironment"
+        },
+        {
           "command": "curl-code.deactivateEnvironment",
           "when": "view == curl-code.environments && viewItem == activeEnvironment",
           "group": "inline"
@@ -274,12 +302,38 @@
           "when": "view == curl-code.environments && viewItem == activeEnvironment"
         },
         {
+          "command": "curl-code.deactivateEnvironment",
+          "when": "view == curl-code.environments && viewItem == globalActiveEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.deactivateEnvironment",
+          "when": "view == curl-code.environments && viewItem == globalActiveEnvironment"
+        },
+        {
+          "command": "curl-code.deactivateEnvironment",
+          "when": "view == curl-code.environments && viewItem == collectionActiveEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.deactivateEnvironment",
+          "when": "view == curl-code.environments && viewItem == collectionActiveEnvironment"
+        },
+        {
           "command": "curl-code.deleteEnvironment",
           "when": "view == curl-code.environments && viewItem == environment"
         },
         {
           "command": "curl-code.deleteEnvironment",
           "when": "view == curl-code.environments && viewItem == activeEnvironment"
+        },
+        {
+          "command": "curl-code.deleteEnvironment",
+          "when": "view == curl-code.environments && viewItem == globalEnvironment"
+        },
+        {
+          "command": "curl-code.deleteEnvironment",
+          "when": "view == curl-code.environments && viewItem == globalActiveEnvironment"
         },
         {
           "command": "curl-code.editEnvironmentVariable",

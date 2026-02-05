@@ -1,0 +1,106 @@
+{
+  "id": "col_test_123",
+  "name": "API Testing",
+  "description": "Test collection with environments",
+  "folders": [],
+  "requests": [
+    {
+      "id": "req_1",
+      "name": "Get Users",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/users",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer {{apiKey}}",
+          "enabled": true
+        }
+      ],
+      "queryParams": [],
+      "body": {
+        "type": "none",
+        "content": "",
+        "formData": []
+      },
+      "auth": {
+        "type": "none"
+      },
+      "createdAt": 1738677600000,
+      "updatedAt": 1738677600000
+    }
+  ],
+  "variables": [],
+  "environments": [
+    {
+      "id": "env_dev",
+      "name": "Development",
+      "isActive": false,
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "http://localhost:3000",
+          "type": "default",
+          "enabled": true
+        },
+        {
+          "key": "apiKey",
+          "value": "dev-key-12345",
+          "type": "secret",
+          "enabled": true
+        },
+        {
+          "key": "debugMode",
+          "value": "true",
+          "type": "default",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "env_staging",
+      "name": "Staging",
+      "isActive": false,
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "https://staging.example.com",
+          "type": "default",
+          "enabled": true
+        },
+        {
+          "key": "apiKey",
+          "value": "staging-key-67890",
+          "type": "secret",
+          "enabled": true
+        },
+        {
+          "key": "debugMode",
+          "value": "false",
+          "type": "default",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "env_prod",
+      "name": "Production",
+      "isActive": false,
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "https://api.example.com",
+          "type": "default",
+          "enabled": true
+        },
+        {
+          "key": "apiKey",
+          "value": "prod-key-abcdef",
+          "type": "secret",
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "createdAt": 1738677600000,
+  "updatedAt": 1738677600000
+}

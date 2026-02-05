@@ -26,8 +26,8 @@ export async function activate(context: vscode.ExtensionContext) {
     await historyService.initialize();
     await environmentService.initialize();
 
-    // Initialize CurlExecutor with EnvironmentService for variable interpolation
-    const curlExecutor = new CurlExecutor(environmentService);
+    // Initialize CurlExecutor with EnvironmentService and CollectionService for variable interpolation
+    const curlExecutor = new CurlExecutor(environmentService, collectionService);
 
     // Check if cURL is available
     const curlAvailable = await curlExecutor.checkCurlAvailable();
@@ -45,7 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Initialize tree providers
     const collectionsProvider = new CollectionTreeProvider(collectionService);
     const historyProvider = new HistoryTreeProvider(historyService);
-    const environmentProvider = new EnvironmentTreeProvider(environmentService);
+    const environmentProvider = new EnvironmentTreeProvider(environmentService, collectionService);
 
     // Register tree views
     const collectionsView = vscode.window.createTreeView('curl-code.collections', {
@@ -151,6 +151,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 const collection = await collectionService.importCollection(json);
 
                 if (collection) {
+                    // Refresh environment tree to show new/updated environments
+                    environmentProvider.refresh();
                     vscode.window.showInformationMessage(`Collection "${collection.name}" imported successfully`);
                 } else {
                     vscode.window.showErrorMessage('Failed to import collection. Invalid JSON format.');
@@ -183,6 +185,30 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
 
+        vscode.commands.registerCommand('curl-code.deleteCollection', async (item) => {
+            if (!item || !item.id || !item.name) {
+                vscode.window.showErrorMessage('Please select a collection to delete');
+                return;
+            }
+
+            const confirm = await vscode.window.showWarningMessage(
+                `Delete collection "${item.name}"? This will also remove all environments associated with this collection.`,
+                { modal: true },
+                'Delete'
+            );
+
+            if (confirm === 'Delete') {
+                const deleted = await collectionService.deleteCollection(item.id);
+                if (deleted) {
+                    // Refresh environment tree since collection environments are now removed
+                    environmentProvider.refresh();
+                    vscode.window.showInformationMessage(`Collection "${item.name}" deleted`);
+                } else {
+                    vscode.window.showErrorMessage('Failed to delete collection');
+                }
+            }
+        }),
+
         vscode.commands.registerCommand('curl-code.refreshCollections', () => {
             collectionsProvider.refresh();
         }),
@@ -199,6 +225,15 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
 
         vscode.commands.registerCommand('curl-code.newEnvironmentVariable', async (item) => {
+            // Extract environment ID from TreeItemData
+            // Item can be an environment or a variable
+            const envId = item?.environment?.id || item?.variable?.environmentId;
+
+            if (!envId) {
+                vscode.window.showErrorMessage('Please select an environment');
+                return;
+            }
+
             const name = await vscode.window.showInputBox({
                 prompt: 'Enter variable name',
                 placeHolder: 'api_key'
@@ -208,41 +243,118 @@ export async function activate(context: vscode.ExtensionContext) {
                 placeHolder: 'your-api-key-here'
             });
 
-            if (name && value){
-                await environmentService.addVariable(item.id, name, value);
+            if (name && value) {
+                // Check if it's a global environment
+                const globalEnv = environmentService.getEnvironment(envId);
+
+                if (globalEnv) {
+                    // It's a global environment
+                    await environmentService.addVariable(envId, name, value);
+                    vscode.window.showInformationMessage(`Variable "${name}" added`);
+                } else {
+                    // It's a collection environment
+                    const collections = collectionService.getCollections();
+                    let found = false;
+
+                    for (const collection of collections) {
+                        if (collection.environments) {
+                            const env = collection.environments.find(e => e.id === envId);
+                            if (env) {
+                                // Add the new variable
+                                env.variables.push({
+                                    key: name,
+                                    value: value,
+                                    type: 'default',
+                                    enabled: true
+                                });
+
+                                // Save the updated collection
+                                await collectionService.updateCollection(collection.id, collection);
+                                vscode.window.showInformationMessage(`Variable "${name}" added`);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!found) {
+                        vscode.window.showErrorMessage('Environment not found');
+                    }
+                }
+
+                // Refresh environment tree
+                environmentProvider.refresh();
             }
         }),
 
         vscode.commands.registerCommand('curl-code.editEnvironmentVariable', async (item) => {
-            // Item is a VariableTreeItem with environmentId, key, value, type, enabled
-            if (!item?.environmentId || !item?.key) {
+            // Item is a TreeItemData with variable property
+            if (!item?.variable?.environmentId || !item?.variable?.key) {
                 return;
             }
 
-            const environmentId = item.environmentId;
-            const variableKey = item.key;
+            const environmentId = item.variable.environmentId;
+            const variableKey = item.variable.key;
+            const variableType = item.variable.type;
+            const variableValue = item.variable.value;
 
             const newValue = await vscode.window.showInputBox({
                 prompt: `Edit value for "${variableKey}"`,
-                value: item.type === 'secret' ? '' : item.value,
-                placeHolder: item.type === 'secret' ? 'Enter new secret value' : 'Enter new value',
-                password: item.type === 'secret'
+                value: variableType === 'secret' ? '' : variableValue,
+                placeHolder: variableType === 'secret' ? 'Enter new secret value' : 'Enter new value',
+                password: variableType === 'secret'
             });
 
             if (newValue !== undefined) {
-                await environmentService.updateVariable(environmentId, variableKey, { value: newValue });
-                vscode.window.showInformationMessage(`Variable "${variableKey}" updated`);
+                // Check if it's a global environment
+                const globalEnv = environmentService.getEnvironment(environmentId);
+
+                if (globalEnv) {
+                    // It's a global environment
+                    await environmentService.updateVariable(environmentId, variableKey, { value: newValue });
+                    vscode.window.showInformationMessage(`Variable "${variableKey}" updated`);
+                } else {
+                    // It's a collection environment
+                    const collections = collectionService.getCollections();
+                    let found = false;
+
+                    for (const collection of collections) {
+                        if (collection.environments) {
+                            const env = collection.environments.find(e => e.id === environmentId);
+                            if (env) {
+                                // Find and update the variable
+                                const variable = env.variables.find(v => v.key === variableKey);
+                                if (variable) {
+                                    variable.value = newValue;
+
+                                    // Save the updated collection
+                                    await collectionService.updateCollection(collection.id, collection);
+                                    vscode.window.showInformationMessage(`Variable "${variableKey}" updated`);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!found) {
+                        vscode.window.showErrorMessage('Environment or variable not found');
+                    }
+                }
+
+                // Refresh environment tree
+                environmentProvider.refresh();
             }
         }),
 
         vscode.commands.registerCommand('curl-code.deleteEnvironmentVariable', async (item) => {
-            // Item is a VariableTreeItem with environmentId, key, value, type, enabled
-            if (!item?.environmentId || !item?.key) {
+            // Item is a TreeItemData with variable property
+            if (!item?.variable?.environmentId || !item?.variable?.key) {
                 return;
             }
 
-            const environmentId = item.environmentId;
-            const variableKey = item.key;
+            const environmentId = item.variable.environmentId;
+            const variableKey = item.variable.key;
 
             const confirm = await vscode.window.showWarningMessage(
                 `Delete variable "${variableKey}"?`,
@@ -251,8 +363,44 @@ export async function activate(context: vscode.ExtensionContext) {
             );
 
             if (confirm === 'Delete') {
-                await environmentService.deleteVariable(environmentId, variableKey);
-                vscode.window.showInformationMessage(`Variable "${variableKey}" deleted`);
+                // Check if it's a global environment
+                const globalEnv = environmentService.getEnvironment(environmentId);
+
+                if (globalEnv) {
+                    // It's a global environment
+                    await environmentService.deleteVariable(environmentId, variableKey);
+                    vscode.window.showInformationMessage(`Variable "${variableKey}" deleted`);
+                } else {
+                    // It's a collection environment
+                    const collections = collectionService.getCollections();
+                    let found = false;
+
+                    for (const collection of collections) {
+                        if (collection.environments) {
+                            const env = collection.environments.find(e => e.id === environmentId);
+                            if (env) {
+                                // Find and remove the variable
+                                const variableIndex = env.variables.findIndex(v => v.key === variableKey);
+                                if (variableIndex !== -1) {
+                                    env.variables.splice(variableIndex, 1);
+
+                                    // Save the updated collection
+                                    await collectionService.updateCollection(collection.id, collection);
+                                    vscode.window.showInformationMessage(`Variable "${variableKey}" deleted`);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!found) {
+                        vscode.window.showErrorMessage('Environment or variable not found');
+                    }
+                }
+
+                // Refresh environment tree
+                environmentProvider.refresh();
             }
         }),
 
@@ -261,14 +409,85 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
 
         vscode.commands.registerCommand('curl-code.setActiveEnvironment', async (item) => {
-            if (item?.id) {
-                await environmentService.setActiveEnvironment(item.id);
-                vscode.window.showInformationMessage(`Environment "${item.name}" is now active`);
+            // When invoked from tree view context menu, item is the TreeItemData object
+            // When invoked from webview, item has { id, name } structure
+            const envId = item?.environment?.id || item?.id;
+
+            if (envId) {
+                let environmentName: string | undefined;
+
+                // Check if it's a global environment
+                const globalEnv = environmentService.getEnvironment(envId);
+
+                if (globalEnv) {
+                    // It's a global environment
+                    environmentName = globalEnv.name;
+                    await environmentService.setActiveEnvironment(envId);
+                } else {
+                    // Check if it's a collection environment
+                    const collections = collectionService.getCollections();
+                    let found = false;
+
+                    for (const collection of collections) {
+                        if (collection.environments) {
+                            const envIndex = collection.environments.findIndex(e => e.id === envId);
+                            if (envIndex !== -1) {
+                                // Get the environment name
+                                environmentName = collection.environments[envIndex].name;
+
+                                // Deactivate all environments in this collection
+                                collection.environments.forEach(e => e.isActive = false);
+                                // Activate the selected environment
+                                collection.environments[envIndex].isActive = true;
+                                // Save the collection
+                                await collectionService.updateCollection(collection.id, collection);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!found) {
+                        vscode.window.showErrorMessage('Environment not found');
+                        return;
+                    }
+
+                    // Deactivate global environments
+                    await environmentService.setActiveEnvironment(null);
+                }
+
+                // Refresh environment tree
+                environmentProvider.refresh();
+
+                if (environmentName) {
+                    vscode.window.showInformationMessage(`Environment "${environmentName}" is now active`);
+                }
             }
         }),
 
         vscode.commands.registerCommand('curl-code.deactivateEnvironment', async () => {
+            // Deactivate global environments
             await environmentService.setActiveEnvironment(null);
+
+            // Deactivate all collection environments
+            const collections = collectionService.getCollections();
+            for (const collection of collections) {
+                if (collection.environments) {
+                    let needsUpdate = false;
+                    collection.environments.forEach(e => {
+                        if (e.isActive) {
+                            e.isActive = false;
+                            needsUpdate = true;
+                        }
+                    });
+                    if (needsUpdate) {
+                        await collectionService.updateCollection(collection.id, collection);
+                    }
+                }
+            }
+
+            // Refresh environment tree
+            environmentProvider.refresh();
             vscode.window.showInformationMessage('Environment deactivated');
         }),
 
