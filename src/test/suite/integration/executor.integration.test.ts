@@ -48,9 +48,11 @@ describe('CurlExecutor Integration', () => {
 
 		getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration').returns(mockConfig as any);
 
-		// Stub child_process.spawn
+		// Stub child_process.spawn - use replace for macOS compatibility
 		mockProcess = new MockChildProcess();
-		spawnStub = sinon.stub(childProcess, 'spawn').returns(mockProcess as any);
+		spawnStub = sinon.stub();
+		spawnStub.returns(mockProcess as any);
+		sinon.replace(childProcess, 'spawn', spawnStub);
 
 		executor = new CurlExecutor();
 	});

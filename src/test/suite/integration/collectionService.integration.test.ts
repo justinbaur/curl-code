@@ -33,14 +33,19 @@ describe('CollectionService Integration', () => {
 		workspaceFoldersStub = sinon.stub(vscode.workspace, 'workspaceFolders').value(undefined);
 		showWarningMessageStub = sinon.stub(vscode.window, 'showWarningMessage').resolves({ title: 'Cancel' });
 
-		// Stub fs promises
+		// Stub fs promises - use replace for macOS compatibility
 		fsStub = {
-			mkdir: sinon.stub(fs, 'mkdir').resolves(),
-			readdir: sinon.stub(fs, 'readdir').resolves([]),
-			readFile: sinon.stub(fs, 'readFile').resolves('{}'),
-			writeFile: sinon.stub(fs, 'writeFile').resolves(),
-			unlink: sinon.stub(fs, 'unlink').resolves()
+			mkdir: sinon.stub().resolves(),
+			readdir: sinon.stub().resolves([]),
+			readFile: sinon.stub().resolves('{}'),
+			writeFile: sinon.stub().resolves(),
+			unlink: sinon.stub().resolves()
 		};
+		sinon.replace(fs, 'mkdir', fsStub.mkdir);
+		sinon.replace(fs, 'readdir', fsStub.readdir);
+		sinon.replace(fs, 'readFile', fsStub.readFile);
+		sinon.replace(fs, 'writeFile', fsStub.writeFile);
+		sinon.replace(fs, 'unlink', fsStub.unlink);
 
 		service = new CollectionService(context as any);
 	});
