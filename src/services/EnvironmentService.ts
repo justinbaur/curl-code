@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import type { Environment, EnvironmentVariable } from '../types/collection';
-import { createEmptyEnvironment, generateEnvironmentId } from '../types/collection';
+import { createEmptyEnvironment } from '../types/collection';
 
 export class EnvironmentService {
     private static readonly ENVIRONMENTS_KEY = 'curl-code.environments';

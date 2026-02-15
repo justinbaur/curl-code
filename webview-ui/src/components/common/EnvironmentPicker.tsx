@@ -41,7 +41,7 @@ export function EnvironmentPicker() {
           </option>
         ))}
       </select>
-      {activeEnv && activeEnv.variables.length > 0 && (
+      {activeEnv && activeEnv.variables.filter((v) => v.enabled).length > 0 && (
         <div className="environment-info">
           <span className="variable-count">
             {activeEnv.variables.filter((v) => v.enabled).length} active variables

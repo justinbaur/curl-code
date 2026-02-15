@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 156
+server: nginx/1.18.0
+date: Mon, 05 Feb 2024 10:30:00 GMT
+x-request-id: abc-123-def-456
+connection: keep-alive
+
+{"id":123,"username":"testuser","email":"test@example.com","profile":{"name":"Test User","bio":"A test user account"},"settings":{"theme":"dark"}}
+---CURL_INFO---
+200
+0.245
+156

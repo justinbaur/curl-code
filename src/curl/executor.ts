@@ -158,6 +158,7 @@ export class CurlExecutor {
         // Create a resolver function that checks both global and collection environments
         const resolveVar = (text: string): string => {
             // First try global environment
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             let result = this.environmentService!.resolveVariables(text);
 
             // If no substitution happened and we have collection service, try collection environments

@@ -1,0 +1,44 @@
+# Sample HTTP file for testing
+# Variables can be defined like this
+@baseUrl = https://api.example.com
+@token = Bearer test-token-12345
+
+### Get User Profile
+GET {{baseUrl}}/users/123
+Authorization: {{token}}
+Content-Type: application/json
+
+###
+
+### Create New User
+POST {{baseUrl}}/users
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "profile": {
+    "name": "New User",
+    "bio": "A new user account"
+  }
+}
+
+###
+
+### Update User Settings
+PATCH {{baseUrl}}/users/123/settings
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "theme": "dark",
+  "notifications": true,
+  "language": "en"
+}
+
+###
+
+### Delete User
+DELETE {{baseUrl}}/users/123
+Authorization: {{token}}

@@ -1,0 +1,13 @@
+HTTP/1.1 404 Not Found
+content-type: application/json; charset=utf-8
+content-length: 45
+server: nginx/1.18.0
+date: Mon, 05 Feb 2024 10:30:00 GMT
+x-request-id: abc-123-def-456
+connection: keep-alive
+
+{"error":"User not found","code":"USER_NOT_FOUND"}
+---CURL_INFO---
+404
+0.123
+45

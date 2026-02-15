@@ -1,22 +1,19 @@
 {
   "name": "curl-code",
   "displayName": "curl-code",
-  "description": "Full-featured HTTP client with cURL backend for VS Code",
+  "description": "HTTP client using cURL backend for VS Code",
   "version": "0.1.0",
-  "publisher": "curl-code",
+  "publisher": "Justin Baur",
   "license": "MIT",
   "private": true,
-  "author": {
-    "name": "Justin Baur"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/justinbaur/curl-code"
-  },  
+  },
   "engines": {
     "vscode": "^1.108.0",
-    "node": ">=20.0.0",
-    "npm": ">=10.0.0"
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   },
   "categories": [
     "Other",
@@ -36,26 +33,48 @@
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
+    "compile-tests": "tsc -p ./tsconfig.test.json",
+    "watch-tests": "tsc -p ./tsconfig.test.json -w",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js",
+    "test:unit": "mocha 'out/test/suite/unit/**/*.test.js' --require source-map-support/register",
+    "test:extension": "node ./out/test/runTest.js",
+    "test:integration": "node ./out/test/runTest.js --grep 'integration'",
+    "test:e2e": "node ./out/test/runTest.js --grep 'e2e'",
+    "test:webview": "cd webview-ui && npm run test",
+    "test:webview:watch": "cd webview-ui && npm run test:watch",
+    "test:webview:ui": "cd webview-ui && npm run test:ui",
+    "test": "npm run test:unit && npm run test:extension",
+    "test:all": "npm run test:unit && npm run test:extension && npm run test:webview",
+    "test:coverage:unit": "c8 --reporter=text --reporter=lcov --reporter=html-spa --report-dir=coverage/unit mocha 'out/test/suite/unit/**/*.test.js'",
+    "test:coverage:extension": "c8 --reporter=text --reporter=lcov --reporter=html-spa --report-dir=coverage/extension node ./out/test/runTest.js",
+    "test:coverage": "npm run test:coverage:unit && npm run test:coverage:extension",
+    "test:coverage:all": "npm run test:coverage && cd webview-ui && npm run test:coverage",
     "build:webview": "cd webview-ui && npm run build",
-    "build:all": "npm run build:webview && npm run compile"
+    "build:all": "npm run build:webview && npm run compile",
+    "deploy": "vsce publish --yarn"
   },
   "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.10.5",
+    "@types/sinon": "^21.0.0",
+    "@types/source-map-support": "^0.5.10",
     "@types/vscode": "^1.108.0",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
     "@vscode/test-electron": "^2.4.1",
+    "c8": "^10.1.3",
+    "chai": "^6.2.2",
     "eslint": "^9.39.2",
+    "mocha": "^11.7.5",
+    "sinon": "^21.0.1",
+    "source-map-support": "^0.5.21",
     "ts-loader": "^9.5.1",
     "typescript": "^5.7.3",
     "webpack": "^5.104.1",
     "webpack-cli": "^5.1.4"
-  },  
+  },
   "activationEvents": [
     "onLanguage:http",
     "workspaceContains:**/*.http",
@@ -175,7 +194,7 @@
         "title": "Delete Environment",
         "icon": "$(trash)",
         "category": "curl-code"
-      },      
+      },
       {
         "command": "curl-code.openRequestBuilder",
         "title": "Open Request Builder",
@@ -221,7 +240,7 @@
           "command": "curl-code.refreshCollections",
           "when": "view == curl-code.collections",
           "group": "navigation"
-        },        
+        },
         {
           "command": "curl-code.importCollection",
           "when": "view == curl-code.collections"
@@ -240,7 +259,7 @@
           "command": "curl-code.refreshEnvironments",
           "when": "view == curl-code.environments",
           "group": "navigation"
-        },        
+        },
         {
           "command": "curl-code.clearHistory",
           "when": "view == curl-code.history",
@@ -357,18 +376,6 @@
         }
       ]
     },
-    "keybindings": [
-      {
-        "command": "curl-code.sendRequest",
-        "key": "ctrl+shift+s",
-        "mac": "cmd+shift+s"
-      },
-      {
-        "command": "curl-code.newRequest",
-        "key": "ctrl+shift+n",
-        "mac": "cmd+shift+n"
-      }
-    ],
     "languages": [
       {
         "id": "http",

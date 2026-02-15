@@ -44,8 +44,9 @@ export function AuthEditor({ auth, onChange }: AuthEditorProps) {
         {auth.type === 'basic' && (
           <>
             <div className="auth-field">
-              <label>Username</label>
+              <label htmlFor="auth-username">Username</label>
               <input
+                id="auth-username"
                 type="text"
                 value={auth.username || ''}
                 onChange={(e) => handleFieldChange('username', e.target.value)}
@@ -53,8 +54,9 @@ export function AuthEditor({ auth, onChange }: AuthEditorProps) {
               />
             </div>
             <div className="auth-field">
-              <label>Password</label>
+              <label htmlFor="auth-password">Password</label>
               <input
+                id="auth-password"
                 type="password"
                 value={auth.password || ''}
                 onChange={(e) => handleFieldChange('password', e.target.value)}
@@ -66,8 +68,9 @@ export function AuthEditor({ auth, onChange }: AuthEditorProps) {
 
         {auth.type === 'bearer' && (
           <div className="auth-field">
-            <label>Token</label>
+            <label htmlFor="auth-token">Token</label>
             <input
+              id="auth-token"
               type="text"
               value={auth.token || ''}
               onChange={(e) => handleFieldChange('token', e.target.value)}
@@ -80,8 +83,9 @@ export function AuthEditor({ auth, onChange }: AuthEditorProps) {
         {auth.type === 'api-key' && (
           <>
             <div className="auth-field">
-              <label>Key Name</label>
+              <label htmlFor="auth-apikey-name">Key Name</label>
               <input
+                id="auth-apikey-name"
                 type="text"
                 value={auth.apiKeyName || ''}
                 onChange={(e) => handleFieldChange('apiKeyName', e.target.value)}
@@ -89,8 +93,9 @@ export function AuthEditor({ auth, onChange }: AuthEditorProps) {
               />
             </div>
             <div className="auth-field">
-              <label>Key Value</label>
+              <label htmlFor="auth-apikey-value">Key Value</label>
               <input
+                id="auth-apikey-value"
                 type="password"
                 value={auth.apiKeyValue || ''}
                 onChange={(e) => handleFieldChange('apiKeyValue', e.target.value)}
@@ -98,8 +103,9 @@ export function AuthEditor({ auth, onChange }: AuthEditorProps) {
               />
             </div>
             <div className="auth-field">
-              <label>Add to</label>
+              <label htmlFor="auth-apikey-location">Add to</label>
               <select
+                id="auth-apikey-location"
                 value={auth.apiKeyLocation || 'header'}
                 onChange={(e) =>
                   handleFieldChange('apiKeyLocation', e.target.value)

@@ -5,3 +5,4 @@ out/
 .vscode-test/
 webview-ui/node_modules/
 webview-ui/dist/
+coverage/

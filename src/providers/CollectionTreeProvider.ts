@@ -60,7 +60,7 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItemD
     /**
      * Get parent of a tree item
      */
-    getParent(element: TreeItemData): vscode.ProviderResult<TreeItemData> {
+    getParent(_element: TreeItemData): vscode.ProviderResult<TreeItemData> {
         // For simplicity, we don't track parent relationships
         return null;
     }

@@ -1,6 +1,7 @@
 /**
  * Centralized logging utility for debugging
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as vscode from 'vscode';
 

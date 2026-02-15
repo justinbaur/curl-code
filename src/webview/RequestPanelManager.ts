@@ -3,8 +3,8 @@
  */
 
 import * as vscode from 'vscode';
-import * as path from 'path';
-import type { HttpRequest, HttpResponse } from '../types/request';
+import type { HttpRequest } from '../types/request';
+import type { Environment } from '../types/collection';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../types/messages';
 import { createEmptyRequest, normalizeRequest } from '../types/request';
 import { CurlExecutor } from '../curl/executor';
@@ -341,7 +341,7 @@ export class RequestPanelManager {
         const globalEnvironments = this.environmentService.getEnvironments();
 
         // Get collection environments
-        const collectionEnvironments: any[] = [];
+        const collectionEnvironments: Array<Environment & { collectionName?: string }> = [];
         const collections = this.collectionService.getCollections();
         for (const collection of collections) {
             if (collection.environments && collection.environments.length > 0) {

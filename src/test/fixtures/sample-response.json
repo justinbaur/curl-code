@@ -1,0 +1,20 @@
+{
+  "statusCode": 200,
+  "statusMessage": "OK",
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "156",
+    "server": "nginx/1.18.0",
+    "date": "Mon, 05 Feb 2024 10:30:00 GMT",
+    "x-request-id": "abc-123-def-456"
+  },
+  "body": "{\"id\":123,\"username\":\"testuser\",\"email\":\"test@example.com\",\"profile\":{\"name\":\"Test User\",\"bio\":\"A test user account\"},\"settings\":{\"theme\":\"dark\"}}",
+  "timing": {
+    "total": 245,
+    "namelookup": 15,
+    "connect": 35,
+    "pretransfer": 50,
+    "starttransfer": 180
+  },
+  "redirects": []
+}

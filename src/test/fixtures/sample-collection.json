@@ -1,0 +1,114 @@
+{
+  "id": "col-001",
+  "name": "API Test Collection",
+  "description": "Sample collection for testing",
+  "folders": [
+    {
+      "id": "folder-001",
+      "name": "User Management",
+      "requests": [
+        {
+          "id": "req-001",
+          "name": "Get User Profile",
+          "method": "GET",
+          "url": "{{baseUrl}}/users/{{userId}}",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{authToken}}",
+              "enabled": true
+            }
+          ],
+          "queryParams": [],
+          "body": "",
+          "timeout": 30000,
+          "followRedirects": true,
+          "verifySSL": true
+        },
+        {
+          "id": "req-002",
+          "name": "Create User",
+          "method": "POST",
+          "url": "{{baseUrl}}/users",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer {{authToken}}",
+              "enabled": true
+            }
+          ],
+          "queryParams": [],
+          "body": "{\"username\":\"testuser\",\"email\":\"test@example.com\"}",
+          "timeout": 30000,
+          "followRedirects": true,
+          "verifySSL": true
+        }
+      ]
+    },
+    {
+      "id": "folder-002",
+      "name": "Authentication",
+      "requests": [
+        {
+          "id": "req-003",
+          "name": "Login",
+          "method": "POST",
+          "url": "{{baseUrl}}/auth/login",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            }
+          ],
+          "queryParams": [],
+          "body": "{\"username\":\"admin\",\"password\":\"secret123\"}",
+          "timeout": 30000,
+          "followRedirects": true,
+          "verifySSL": true
+        }
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "id": "env-001",
+      "name": "Development",
+      "scope": "collection",
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "https://api.dev.example.com",
+          "enabled": true
+        },
+        {
+          "key": "userId",
+          "value": "123",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "env-002",
+      "name": "Production",
+      "scope": "collection",
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "https://api.example.com",
+          "enabled": true
+        },
+        {
+          "key": "userId",
+          "value": "456",
+          "enabled": true
+        }
+      ]
+    }
+  ]
+}
