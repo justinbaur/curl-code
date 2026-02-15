@@ -20,6 +20,13 @@ export default defineConfig({
 		// Global test configuration
 		globals: true,
 
+		// Ensure tests run in headless mode for CI
+		// Pool mode for better isolation in CI environments
+		pool: 'forks',
+
+		// Disable file parallelization in CI for stability
+		fileParallelism: false,
+
 		// Coverage configuration
 		coverage: {
 			provider: 'v8',
@@ -34,11 +41,13 @@ export default defineConfig({
 				'**/dist/**',
 				'**/build/**'
 			],
-			// Coverage thresholds
-			lines: 85,
-			functions: 85,
-			branches: 75,
-			statements: 85
+			// Coverage thresholds (Vitest v4 format)
+			thresholds: {
+				lines: 85,
+				functions: 85,
+				branches: 75,
+				statements: 85
+			}
 		},
 
 		// Test timeout (5 seconds)
