@@ -52,7 +52,7 @@ describe('HistoryService Integration', () => {
 					timestamp: Date.now()
 				}
 			];
-			await context.workspaceState.update('curl-code.history', savedHistory);
+			await context.globalState.update('curl-code.history', savedHistory);
 
 			await service.initialize();
 

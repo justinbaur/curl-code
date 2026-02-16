@@ -40,7 +40,7 @@ describe('EnvironmentService Integration', () => {
 					isActive: false
 				}
 			];
-			await context.workspaceState.update('curl-code.environments', savedEnvs);
+			await context.globalState.update('curl-code.environments', savedEnvs);
 
 			await service.initialize();
 
