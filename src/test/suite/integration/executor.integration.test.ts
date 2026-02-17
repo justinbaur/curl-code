@@ -35,7 +35,6 @@ describe('CurlExecutor Integration', () => {
 	let spawnStub: sinon.SinonStub;
 	let mockProcess: MockChildProcess;
 	let getConfigurationStub: sinon.SinonStub;
-	let originalSpawn: typeof childProcess.spawn;
 
 	beforeEach(() => {
 		// Stub VS Code configuration
@@ -48,28 +47,12 @@ describe('CurlExecutor Integration', () => {
 		mockConfig.get.withArgs('timeout', 30000).returns(30000);
 
 		getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration').returns(mockConfig as any);
-
-		// Stub child_process.spawn - use Object.defineProperty for cross-platform compatibility
-		originalSpawn = childProcess.spawn;
 		mockProcess = new MockChildProcess();
-		spawnStub = sinon.stub();
-		spawnStub.returns(mockProcess as any);
-		Object.defineProperty(childProcess, 'spawn', {
-			value: spawnStub,
-			writable: true,
-			configurable: true
-		});
-
+		spawnStub = sinon.stub(childProcess, 'spawn').returns(mockProcess as any);
 		executor = new CurlExecutor();
 	});
 
 	afterEach(() => {
-		// Restore original spawn
-		Object.defineProperty(childProcess, 'spawn', {
-			value: originalSpawn,
-			writable: true,
-			configurable: true
-		});
 		sinon.restore();
 	});
 
