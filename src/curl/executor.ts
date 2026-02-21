@@ -2,8 +2,9 @@
  * Executes HTTP requests using cURL
  */
 
-import { spawn, ChildProcess } from 'child_process';
+import { ChildProcess } from 'child_process';
 import * as vscode from 'vscode';
+import { childProcessFacade } from '../utils/childProcessWrapper';
 import type { HttpRequest, HttpResponse } from '../types/request';
 import { ArgumentBuilder, type CurlOptions } from './argumentBuilder';
 import { ResponseParser } from './responseParser';
@@ -52,7 +53,7 @@ export class CurlExecutor {
                 '-S'        // Show errors
             ];
 
-            this.currentProcess = spawn(curlPath, fullArgs, {
+            this.currentProcess = childProcessFacade.spawn(curlPath, fullArgs, {
                 shell: false,
                 windowsHide: true
             });
@@ -122,7 +123,7 @@ export class CurlExecutor {
         const curlPath = config.get<string>('curlPath', 'curl');
 
         return new Promise((resolve) => {
-            const process = spawn(curlPath, ['--version'], {
+            const process = childProcessFacade.spawn(curlPath, ['--version'], {
                 shell: false,
                 windowsHide: true
             });

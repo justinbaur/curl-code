@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs/promises';
+import { fsFacade } from '../utils/fsWrapper';
 import type { Collection, Folder } from '../types/collection';
 import type { HttpRequest } from '../types/request';
 import { createEmptyCollection, createEmptyFolder } from '../types/collection';
@@ -92,7 +92,7 @@ export class CollectionService {
         // Delete the file
         const filePath = path.join(this.storageDir, `${collection.id}.json`);
         try {
-            await fs.unlink(filePath);
+            await fsFacade.unlink(filePath);
         } catch {
             // File might not exist
         }
@@ -284,7 +284,7 @@ export class CollectionService {
      */
     private async ensureStorageDir(): Promise<void> {
         try {
-            await fs.mkdir(this.storageDir, { recursive: true });
+            await fsFacade.mkdir(this.storageDir, { recursive: true });
         } catch {
             // Directory might already exist
         }
@@ -295,13 +295,13 @@ export class CollectionService {
      */
     private async loadCollections(): Promise<void> {
         try {
-            const files = await fs.readdir(this.storageDir);
+            const files = await fsFacade.readdir(this.storageDir);
             const jsonFiles = files.filter(f => f.endsWith('.json'));
 
             this.collections = [];
             for (const file of jsonFiles) {
                 try {
-                    const content = await fs.readFile(path.join(this.storageDir, file), 'utf-8');
+                    const content = await fsFacade.readFile(path.join(this.storageDir, file), 'utf-8');
                     const collection = JSON.parse(content) as Collection;
                     this.collections.push(collection);
                 } catch {
@@ -323,6 +323,6 @@ export class CollectionService {
     private async saveCollection(collection: Collection): Promise<void> {
         await this.ensureStorageDir();
         const filePath = path.join(this.storageDir, `${collection.id}.json`);
-        await fs.writeFile(filePath, JSON.stringify(collection, null, 2), 'utf-8');
+        await fsFacade.writeFile(filePath, JSON.stringify(collection, null, 2), 'utf-8');
     }
 }

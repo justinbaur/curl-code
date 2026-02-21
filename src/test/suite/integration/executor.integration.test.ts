@@ -7,8 +7,8 @@ import { describe, it, beforeEach, afterEach } from 'mocha';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { EventEmitter } from 'events';
-import * as childProcess from 'child_process';
 import * as vscode from 'vscode';
+import { childProcessFacade } from '../../../utils/childProcessWrapper';
 import { CurlExecutor } from '../../../curl/executor';
 import { createMockRequest, createMockAuth } from '../../utils/testHelpers';
 import type { EnvironmentService } from '../../../services/EnvironmentService';
@@ -48,7 +48,7 @@ describe('CurlExecutor Integration', () => {
 
 		getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration').returns(mockConfig as any);
 		mockProcess = new MockChildProcess();
-		spawnStub = sinon.stub(childProcess, 'spawn').returns(mockProcess as any);
+		spawnStub = sinon.stub(childProcessFacade, 'spawn').returns(mockProcess as any);
 		executor = new CurlExecutor();
 	});
 

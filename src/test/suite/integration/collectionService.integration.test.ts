@@ -6,8 +6,8 @@
 import { describe, it, beforeEach, afterEach } from 'mocha';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
+import { fsFacade } from '../../../utils/fsWrapper';
 import { CollectionService } from '../../../services/CollectionService';
 import { MockExtensionContext } from '../../mocks/vscode';
 import { createMockRequest } from '../../utils/testHelpers';
@@ -23,56 +23,28 @@ describe('CollectionService Integration', () => {
 		writeFile: sinon.SinonStub;
 		unlink: sinon.SinonStub;
 	};
-	let workspaceFoldersStub: sinon.SinonStub;
 	let showWarningMessageStub: sinon.SinonStub;
-	let originalFs: {
-		mkdir: typeof fs.mkdir;
-		readdir: typeof fs.readdir;
-		readFile: typeof fs.readFile;
-		writeFile: typeof fs.writeFile;
-		unlink: typeof fs.unlink;
-	};
 
 	beforeEach(() => {
 		context = new MockExtensionContext();
 
 		// Stub VS Code workspace
-		workspaceFoldersStub = sinon.stub(vscode.workspace, 'workspaceFolders').value(undefined);
+		sinon.stub(vscode.workspace, 'workspaceFolders').value(undefined);
 		showWarningMessageStub = sinon.stub(vscode.window, 'showWarningMessage').resolves({ title: 'Cancel' });
 
-		// Stub fs promises - use Object.defineProperty for cross-platform compatibility
-		originalFs = {
-			mkdir: fs.mkdir,
-			readdir: fs.readdir,
-			readFile: fs.readFile,
-			writeFile: fs.writeFile,
-			unlink: fs.unlink
-		};
-
+		// Stub fsFacade methods — plain object properties are configurable on all platforms
 		fsStub = {
-			mkdir: sinon.stub().resolves(),
-			readdir: sinon.stub().resolves([]),
-			readFile: sinon.stub().resolves('{}'),
-			writeFile: sinon.stub().resolves(),
-			unlink: sinon.stub().resolves()
+			mkdir: sinon.stub(fsFacade, 'mkdir').resolves(),
+			readdir: sinon.stub(fsFacade, 'readdir').resolves([]),
+			readFile: sinon.stub(fsFacade, 'readFile').resolves('{}'),
+			writeFile: sinon.stub(fsFacade, 'writeFile').resolves(),
+			unlink: sinon.stub(fsFacade, 'unlink').resolves()
 		};
-
-		Object.defineProperty(fs, 'mkdir', { value: fsStub.mkdir, writable: true, configurable: true });
-		Object.defineProperty(fs, 'readdir', { value: fsStub.readdir, writable: true, configurable: true });
-		Object.defineProperty(fs, 'readFile', { value: fsStub.readFile, writable: true, configurable: true });
-		Object.defineProperty(fs, 'writeFile', { value: fsStub.writeFile, writable: true, configurable: true });
-		Object.defineProperty(fs, 'unlink', { value: fsStub.unlink, writable: true, configurable: true });
 
 		service = new CollectionService(context as any);
 	});
 
 	afterEach(() => {
-		// Restore original fs methods
-		Object.defineProperty(fs, 'mkdir', { value: originalFs.mkdir, writable: true, configurable: true });
-		Object.defineProperty(fs, 'readdir', { value: originalFs.readdir, writable: true, configurable: true });
-		Object.defineProperty(fs, 'readFile', { value: originalFs.readFile, writable: true, configurable: true });
-		Object.defineProperty(fs, 'writeFile', { value: originalFs.writeFile, writable: true, configurable: true });
-		Object.defineProperty(fs, 'unlink', { value: originalFs.unlink, writable: true, configurable: true });
 		sinon.restore();
 	});
 
