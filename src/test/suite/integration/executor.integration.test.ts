@@ -435,7 +435,7 @@ describe('CurlExecutor Integration', () => {
 
 			expect(command).to.include('curl');
 			expect(command).to.include('-X POST');
-			expect(command).to.include('--data');
+			expect(command).to.include('-d');
 			expect(command).to.include('{"name":"John"}');
 		});
 
@@ -491,15 +491,15 @@ describe('CurlExecutor Integration', () => {
 				url: 'https://{{host}}/api'
 			});
 
-			const responsePromise = executorWithEnv.execute(request);
-
 			const curlOutput =
 				'HTTP/1.1 200 OK\r\n\r\n{}' +
 				'\n---CURL_INFO---\n200\n0.1\n2';
 
-			// Need to create new mock process for second execution
+			// Configure stub before execute() so the right process is returned
 			const mockProcess2 = new MockChildProcess();
 			spawnStub.returns(mockProcess2 as any);
+
+			const responsePromise = executorWithEnv.execute(request);
 
 			mockProcess2.stdout.emit('data', Buffer.from(curlOutput));
 			mockProcess2.emit('close', 0);

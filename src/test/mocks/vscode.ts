@@ -15,7 +15,10 @@ export class MockExtensionContext {
 	environmentVariableCollection: any;
 	storagePath: string | undefined;
 	globalStoragePath: string;
+	globalStorageUri: { fsPath: string; toString(): string };
+	storageUri: { fsPath: string; toString(): string } | undefined;
 	logPath: string;
+	logUri: { fsPath: string; toString(): string };
 	extensionMode: number = 3; // ExtensionMode.Production
 
 	constructor() {
@@ -25,7 +28,10 @@ export class MockExtensionContext {
 		this.secrets = new MockSecretStorage();
 		this.extensionPath = '/mock/extension/path';
 		this.globalStoragePath = '/mock/global/storage';
+		this.globalStorageUri = { fsPath: '/mock/global/storage', toString: () => 'file:///mock/global/storage' };
+		this.storageUri = { fsPath: '/mock/storage', toString: () => 'file:///mock/storage' };
 		this.logPath = '/mock/log/path';
+		this.logUri = { fsPath: '/mock/log/path', toString: () => 'file:///mock/log/path' };
 	}
 
 	asAbsolutePath(relativePath: string): string {
