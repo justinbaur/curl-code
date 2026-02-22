@@ -15,15 +15,8 @@ export class CollectionService {
     private onChangeEmitter = new vscode.EventEmitter<void>();
     readonly onChange = this.onChangeEmitter.event;
 
-    constructor(private context: vscode.ExtensionContext) {
-        // Store collections in workspace .curl-code folder if workspace exists
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders && workspaceFolders.length > 0) {
-            this.storageDir = path.join(workspaceFolders[0].uri.fsPath, '.curl-code', 'collections');
-        } else {
-            // Fall back to global storage
-            this.storageDir = path.join(context.globalStorageUri.fsPath, 'collections');
-        }
+    constructor(context: vscode.ExtensionContext) {
+        this.storageDir = path.join(context.globalStorageUri.fsPath, 'collections');
     }
 
     /**
@@ -89,7 +82,7 @@ export class CollectionService {
         const collection = this.collections[index];
         this.collections.splice(index, 1);
 
-        // Delete the file
+        // For linked collections only delete the stub, never the source file
         const filePath = path.join(this.storageDir, `${collection.id}.json`);
         try {
             await fsFacade.unlink(filePath);
@@ -208,13 +201,15 @@ export class CollectionService {
     async exportCollection(collectionId: string): Promise<string | undefined> {
         const collection = this.getCollection(collectionId);
         if (!collection) return undefined;
-        return JSON.stringify(collection, null, 2);
+        // Strip internal fields before exporting
+        const { sourcePath: _sourcePath, ...exportable } = collection;
+        return JSON.stringify(exportable, null, 2);
     }
 
     /**
      * Import a collection from JSON
      */
-    async importCollection(json: string): Promise<Collection | undefined> {
+    async importCollection(json: string, sourcePath?: string): Promise<Collection | undefined> {
         try {
             const parsed = JSON.parse(json) as Collection;
 
@@ -222,7 +217,6 @@ export class CollectionService {
             const existingCollection = this.collections.find(c => c.name === parsed.name);
 
             if (existingCollection) {
-                // Prompt user
                 const choice = await vscode.window.showWarningMessage(
                     `A collection named "${parsed.name}" already exists. Do you want to replace it?`,
                     'Replace', 'Cancel'
@@ -232,30 +226,46 @@ export class CollectionService {
                     return undefined;
                 }
 
-                // Delete existing collection
                 await this.deleteCollection(existingCollection.id);
             }
 
-            // Generate new ID
-            const newCollection = {
-                ...parsed,
-                id: `col_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            };
+            let newCollection: Collection;
 
-            // Import environments if present
-            if (newCollection.environments && newCollection.environments.length > 0) {
-                // Validate and regenerate environment IDs with composite format
-                newCollection.environments = newCollection.environments.map(env => ({
-                    ...env,
-                    id: `${newCollection.name}_${env.name}`, // Composite ID: collectionName_envName
-                    isActive: false // Imported environments are not active by default
-                }));
+            if (sourcePath) {
+                // Linked collection — preserve original IDs, write a stub pointing to the source file
+                newCollection = { ...parsed, sourcePath };
+                if (newCollection.environments && newCollection.environments.length > 0) {
+                    newCollection.environments = newCollection.environments.map(env => ({
+                        ...env,
+                        isActive: false
+                    }));
+                }
+                const stub = { id: newCollection.id, sourcePath };
+                await this.ensureStorageDir();
+                await fsFacade.writeFile(
+                    path.join(this.storageDir, `${newCollection.id}.json`),
+                    JSON.stringify(stub, null, 2),
+                    'utf-8'
+                );
+            } else {
+                // Regular import — copy into global storage with a fresh ID
+                newCollection = {
+                    ...parsed,
+                    id: `col_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                };
+                if (newCollection.environments && newCollection.environments.length > 0) {
+                    newCollection.environments = newCollection.environments.map(env => ({
+                        ...env,
+                        id: `${newCollection.name}_${env.name}`,
+                        isActive: false
+                    }));
+                }
+                await this.saveCollection(newCollection);
             }
 
             this.collections.push(newCollection);
-            await this.saveCollection(newCollection);
             this.onChangeEmitter.fire();
             return newCollection;
         } catch (error) {
@@ -302,8 +312,23 @@ export class CollectionService {
             for (const file of jsonFiles) {
                 try {
                     const content = await fsFacade.readFile(path.join(this.storageDir, file), 'utf-8');
-                    const collection = JSON.parse(content) as Collection;
-                    this.collections.push(collection);
+                    const parsed = JSON.parse(content);
+
+                    if (parsed.sourcePath && Object.keys(parsed).length === 2) {
+                        // Linked collection stub — load the real content from the source file
+                        try {
+                            const sourceContent = await fsFacade.readFile(parsed.sourcePath, 'utf-8');
+                            const collection = JSON.parse(sourceContent) as Collection;
+                            collection.sourcePath = parsed.sourcePath;
+                            this.collections.push(collection);
+                        } catch {
+                            vscode.window.showWarningMessage(
+                                `Linked collection source file not found: ${parsed.sourcePath}`
+                            );
+                        }
+                    } else {
+                        this.collections.push(parsed as Collection);
+                    }
                 } catch {
                     // Skip invalid files
                 }
@@ -322,7 +347,13 @@ export class CollectionService {
      */
     private async saveCollection(collection: Collection): Promise<void> {
         await this.ensureStorageDir();
-        const filePath = path.join(this.storageDir, `${collection.id}.json`);
-        await fsFacade.writeFile(filePath, JSON.stringify(collection, null, 2), 'utf-8');
+        if (collection.sourcePath) {
+            // Linked collection — write back to the source file, stripping the internal sourcePath field
+            const { sourcePath: _sourcePath, ...data } = collection;
+            await fsFacade.writeFile(collection.sourcePath, JSON.stringify(data, null, 2), 'utf-8');
+        } else {
+            const filePath = path.join(this.storageDir, `${collection.id}.json`);
+            await fsFacade.writeFile(filePath, JSON.stringify(collection, null, 2), 'utf-8');
+        }
     }
 }

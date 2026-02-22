@@ -148,7 +148,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (uris && uris.length > 0) {
                 const content = await vscode.workspace.fs.readFile(uris[0]);
                 const json = Buffer.from(content).toString('utf-8');
-                const collection = await collectionService.importCollection(json);
+                const collection = await collectionService.importCollection(json, uris[0].fsPath);
 
                 if (collection) {
                     // Refresh environment tree to show new/updated environments
@@ -423,6 +423,23 @@ export async function activate(context: vscode.ExtensionContext) {
                     // It's a global environment
                     environmentName = globalEnv.name;
                     await environmentService.setActiveEnvironment(envId);
+
+                    // Deactivate all collection environments
+                    const collections = collectionService.getCollections();
+                    for (const collection of collections) {
+                        if (collection.environments) {
+                            let needsUpdate = false;
+                            collection.environments.forEach(e => {
+                                if (e.isActive) {
+                                    e.isActive = false;
+                                    needsUpdate = true;
+                                }
+                            });
+                            if (needsUpdate) {
+                                await collectionService.updateCollection(collection.id, collection);
+                            }
+                        }
+                    }
                 } else {
                     // Check if it's a collection environment
                     const collections = collectionService.getCollections();

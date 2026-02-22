@@ -16,7 +16,6 @@ describe('ResponseViewer', () => {
 		it('should show keyboard hint in empty state', () => {
 			render(<ResponseViewer response={null} error={null} />);
 
-			expect(screen.getByText(/ctrl\+enter/i)).toBeInTheDocument();
 			expect(screen.getByText(/click send/i)).toBeInTheDocument();
 		});
 

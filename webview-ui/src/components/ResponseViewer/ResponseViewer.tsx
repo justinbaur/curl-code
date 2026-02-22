@@ -37,7 +37,7 @@ export function ResponseViewer({ response, error }: ResponseViewerProps) {
           <div className="empty-state-icon">📡</div>
           <p>Send a request to see the response</p>
           <p style={{ fontSize: '12px', marginTop: '8px' }}>
-            Press <kbd>Ctrl+Enter</kbd> or click Send
+            Click Send
           </p>
         </div>
       </div>

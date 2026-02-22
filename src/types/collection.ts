@@ -14,6 +14,8 @@ export interface Collection {
     environments?: Environment[];  // Collection-scoped environments
     createdAt: number;
     updatedAt: number;
+    /** If set, this collection is linked — reads and writes go to this file path */
+    sourcePath?: string;
 }
 
 export interface Folder {

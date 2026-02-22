@@ -217,6 +217,20 @@ button:disabled {
   background: var(--input-background);
 }
 
+.toolbar-button--primary {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  font-weight: 600;
+}
+
+.toolbar-button--primary:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground);
+  color: var(--vscode-button-foreground);
+}
+
 /* Tabs */
 .tab-panel {
   display: flex;

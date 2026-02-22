@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import type { HttpRequest } from '../types/request';
-import type { Environment } from '../types/collection';
+import type { Environment, Folder } from '../types/collection';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../types/messages';
 import { createEmptyRequest, normalizeRequest } from '../types/request';
 import { CurlExecutor } from '../curl/executor';
@@ -229,8 +229,7 @@ export class RequestPanelManager {
 
             case 'saveRequest':
                 this.currentRequest = message.request;
-                await this.collectionService.saveRequest(message.request);
-                vscode.window.showInformationMessage('Request saved');
+                await this.pickCollectionAndSave(message.request);
                 break;
 
             case 'cancelRequest':
@@ -331,6 +330,76 @@ export class RequestPanelManager {
             this.logger.error(`Error handling webview message: ${message.type}`, error);
             vscode.window.showErrorMessage(`Error processing request: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+
+    /**
+     * Show a collection (then folder) quick pick and save the request
+     */
+    private async pickCollectionAndSave(request: HttpRequest): Promise<void> {
+        let collections = this.collectionService.getCollections();
+
+        if (collections.length === 0) {
+            const choice = await vscode.window.showInformationMessage(
+                'No collections found. Create a default collection?',
+                'Create', 'Cancel'
+            );
+            if (choice !== 'Create') { return; }
+            const newCollection = await this.collectionService.createCollection('Default Collection');
+            await this.collectionService.saveRequest(request, newCollection.id);
+            vscode.window.showInformationMessage(`Request saved to "${newCollection.name}"`);
+            return;
+        }
+
+        type CollectionItem = vscode.QuickPickItem & { id: string };
+        const collectionItems: CollectionItem[] = collections.map(c => ({
+            label: `$(folder-library) ${c.name}`,
+            description: c.id === request.collectionId ? '(current)' : undefined,
+            id: c.id
+        }));
+
+        const selectedCollection = await vscode.window.showQuickPick(collectionItems, {
+            placeHolder: 'Select a collection',
+            title: 'Save Request'
+        });
+        if (!selectedCollection) { return; }
+
+        const collection = collections.find(c => c.id === selectedCollection.id)!;
+        const flatFolders = this.flattenFolders(collection.folders);
+
+        let folderId: string | undefined;
+        if (flatFolders.length > 0) {
+            type FolderItem = vscode.QuickPickItem & { id: string | null };
+            const folderItems: FolderItem[] = [
+                { label: '$(root-folder) Collection root', id: null },
+                ...flatFolders.map(({ folder, path }) => ({
+                    label: `$(folder) ${path}`,
+                    description: folder.id === request.folderId ? '(current)' : undefined,
+                    id: folder.id
+                }))
+            ];
+
+            const selectedFolder = await vscode.window.showQuickPick(folderItems, {
+                placeHolder: 'Select a folder',
+                title: 'Save Request'
+            });
+            if (!selectedFolder) { return; }
+            folderId = selectedFolder.id ?? undefined;
+        }
+
+        await this.collectionService.saveRequest(request, selectedCollection.id, folderId);
+        vscode.window.showInformationMessage(`Request saved to "${collection.name}"`);
+    }
+
+    private flattenFolders(folders: Folder[], parentPath = ''): Array<{ folder: Folder; path: string }> {
+        const result: Array<{ folder: Folder; path: string }> = [];
+        for (const folder of folders) {
+            const path = parentPath ? `${parentPath} / ${folder.name}` : folder.name;
+            result.push({ folder, path });
+            if (folder.folders.length > 0) {
+                result.push(...this.flattenFolders(folder.folders, path));
+            }
+        }
+        return result;
     }
 
     /**

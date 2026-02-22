@@ -45,15 +45,6 @@ export function RequestBuilder({
     onChange({ ...request, name });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      if (request.url && !isLoading) {
-        onSend();
-      }
-    }
-  };
-
   const tabs: Tab[] = [
     {
       id: 'params',
@@ -94,7 +85,6 @@ export function RequestBuilder({
         <UrlBar
           value={request.url}
           onChange={handleUrlChange}
-          onKeyDown={handleKeyDown}
         />
         <button
           type="button"
@@ -107,7 +97,8 @@ export function RequestBuilder({
       </div>
 
       <div className="toolbar">
-        <button type="button" className="toolbar-button" onClick={onSave}>
+        <button type="button" className="toolbar-button toolbar-button--primary" onClick={onSave}>
+          <i className="codicon codicon-save" />
           Save
         </button>
         <button type="button" className="toolbar-button" onClick={onCopyAsCurl}>

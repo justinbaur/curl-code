@@ -157,7 +157,7 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
 
         // Different icons for collection vs global
         item.iconPath = new vscode.ThemeIcon(
-            env.isActive ? 'check' : (collectionName ? 'circle-outline' : 'circle-outline'),
+            env.isActive ? 'check' : (collectionName ? 'circle-outline' : 'globe'),
             env.isActive ? new vscode.ThemeColor('charts.green') : undefined
         );
 

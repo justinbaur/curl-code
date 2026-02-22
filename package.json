@@ -238,12 +238,12 @@
         },
         {
           "command": "curl-code.refreshCollections",
-          "when": "view == curl-code.collections",
-          "group": "navigation"
+          "when": "view == curl-code.collections"
         },
         {
           "command": "curl-code.importCollection",
-          "when": "view == curl-code.collections"
+          "when": "view == curl-code.collections",
+          "group": "navigation"
         },
         {
           "command": "curl-code.newEnvironmentVariable",
@@ -267,11 +267,6 @@
         }
       ],
       "view/item/context": [
-        {
-          "command": "curl-code.sendRequest",
-          "when": "view == curl-code.collections && viewItem == request",
-          "group": "inline"
-        },
         {
           "command": "curl-code.exportCollection",
           "when": "view == curl-code.collections && viewItem == collection"
