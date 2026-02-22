@@ -73,7 +73,13 @@ describe('HistoryService Integration', () => {
 			const entry = await service.addEntry(request, response);
 
 			expect(entry).to.exist;
-			expect(entry.request).to.deep.equal(request);
+			// Auth credentials are stripped before persisting
+			expect(entry.request.method).to.equal(request.method);
+			expect(entry.request.url).to.equal(request.url);
+			expect(entry.request.auth.type).to.equal(request.auth.type);
+			expect(entry.request.auth.password).to.be.undefined;
+			expect(entry.request.auth.token).to.be.undefined;
+			expect(entry.request.auth.apiKeyValue).to.be.undefined;
 			expect(entry.response).to.deep.equal(response);
 
 			const history = service.getHistory();
