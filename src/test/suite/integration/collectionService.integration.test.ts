@@ -117,7 +117,6 @@ describe('CollectionService Integration', () => {
 
 		it('should show a warning and skip a linked collection whose source file is missing', async () => {
 			const stub = { id: 'col_missing', sourcePath: '/gone/collection.json' };
-			const showWarningStub = sinon.stub(vscode.window, 'showWarningMessage').resolves();
 
 			fsStub.readdir.resolves(['col_missing.json']);
 			fsStub.readFile
@@ -130,8 +129,8 @@ describe('CollectionService Integration', () => {
 			await service.initialize();
 
 			expect(service.getCollections()).to.have.lengthOf(0);
-			expect(showWarningStub.calledOnce).to.be.true;
-			expect(showWarningStub.firstCall.args[0]).to.include('/gone/collection.json');
+			expect(showWarningMessageStub.calledOnce).to.be.true;
+			expect(showWarningMessageStub.firstCall.args[0]).to.include('/gone/collection.json');
 		});
 	});
 
