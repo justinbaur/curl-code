@@ -239,53 +239,65 @@ export async function activate(context: vscode.ExtensionContext) {
                 prompt: 'Enter variable name',
                 placeHolder: 'api_key'
             });
+            if (!name) return;
+
+            const typeChoice = await vscode.window.showQuickPick(
+                [
+                    { label: 'Default', description: 'Stored in plain text', value: 'default' as const },
+                    { label: 'Secret', description: 'Stored securely, never exported', value: 'secret' as const }
+                ],
+                { placeHolder: 'Select variable type' }
+            );
+            if (!typeChoice) return;
+            const varType = typeChoice.value;
+
             const value = await vscode.window.showInputBox({
-                prompt: 'Enter variable value',
-                placeHolder: 'your-api-key-here'
+                prompt: varType === 'secret' ? 'Enter secret value' : 'Enter variable value',
+                placeHolder: varType === 'secret' ? '(input is hidden)' : 'your-value-here',
+                password: varType === 'secret'
             });
+            if (!value) return;
 
-            if (name && value) {
-                // Check if it's a global environment
-                const globalEnv = environmentService.getEnvironment(envId);
+            // Check if it's a global environment
+            const globalEnv = environmentService.getEnvironment(envId);
 
-                if (globalEnv) {
-                    // It's a global environment
-                    await environmentService.addVariable(envId, name, value);
-                    vscode.window.showInformationMessage(`Variable "${name}" added`);
-                } else {
-                    // It's a collection environment
-                    const collections = collectionService.getCollections();
-                    let found = false;
+            if (globalEnv) {
+                // It's a global environment
+                await environmentService.addVariable(envId, name, value, varType);
+                vscode.window.showInformationMessage(`Variable "${name}" added`);
+            } else {
+                // It's a collection environment
+                const collections = collectionService.getCollections();
+                let found = false;
 
-                    for (const collection of collections) {
-                        if (collection.environments) {
-                            const env = collection.environments.find(e => e.id === envId);
-                            if (env) {
-                                // Add the new variable
-                                env.variables.push({
-                                    key: name,
-                                    value: value,
-                                    type: 'default',
-                                    enabled: true
-                                });
+                for (const collection of collections) {
+                    if (collection.environments) {
+                        const env = collection.environments.find(e => e.id === envId);
+                        if (env) {
+                            // Add the new variable
+                            env.variables.push({
+                                key: name,
+                                value: value,
+                                type: varType,
+                                enabled: true
+                            });
 
-                                // Save the updated collection
-                                await collectionService.updateCollection(collection.id, collection);
-                                vscode.window.showInformationMessage(`Variable "${name}" added`);
-                                found = true;
-                                break;
-                            }
+                            // Save the updated collection
+                            await collectionService.updateCollection(collection.id, collection);
+                            vscode.window.showInformationMessage(`Variable "${name}" added`);
+                            found = true;
+                            break;
                         }
-                    }
-
-                    if (!found) {
-                        vscode.window.showErrorMessage('Environment not found');
                     }
                 }
 
-                // Refresh environment tree
-                environmentProvider.refresh();
+                if (!found) {
+                    vscode.window.showErrorMessage('Environment not found');
+                }
             }
+
+            // Refresh environment tree
+            environmentProvider.refresh();
         }),
 
         vscode.commands.registerCommand('curl-code.editEnvironmentVariable', async (item) => {
@@ -383,6 +395,11 @@ export async function activate(context: vscode.ExtensionContext) {
                                 // Find and remove the variable
                                 const variableIndex = env.variables.findIndex(v => v.key === variableKey);
                                 if (variableIndex !== -1) {
+                                    const variable = env.variables[variableIndex];
+                                    // Clean up SecretStorage if it's a secret variable
+                                    if (variable.type === 'secret') {
+                                        await collectionService.deleteCollectionSecret(collection.id, environmentId, variableKey);
+                                    }
                                     env.variables.splice(variableIndex, 1);
 
                                     // Save the updated collection

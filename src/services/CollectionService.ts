@@ -10,13 +10,97 @@ import type { HttpRequest } from '../types/request';
 import { createEmptyCollection, createEmptyFolder } from '../types/collection';
 
 export class CollectionService {
+    private static readonly SECRET_PREFIX = 'curl-code.collection-secret.';
     private collections: Collection[] = [];
     private storageDir: string;
+    private context: vscode.ExtensionContext;
     private onChangeEmitter = new vscode.EventEmitter<void>();
     readonly onChange = this.onChangeEmitter.event;
 
     constructor(context: vscode.ExtensionContext) {
+        this.context = context;
         this.storageDir = path.join(context.globalStorageUri.fsPath, 'collections');
+    }
+
+    /**
+     * Build a SecretStorage key for a collection secret variable
+     */
+    private secretKey(collectionId: string, envId: string, varKey: string): string {
+        return `${CollectionService.SECRET_PREFIX}${collectionId}.${envId}.${varKey}`;
+    }
+
+    /**
+     * Return a copy of the collection with secret variable values redacted
+     */
+    private redactSecrets(collection: Collection): Collection {
+        return {
+            ...collection,
+            environments: collection.environments?.map(env => ({
+                ...env,
+                variables: env.variables.map(v =>
+                    v.type === 'secret' ? { ...v, value: '' } : v
+                )
+            }))
+        };
+    }
+
+    /**
+     * Persist secret variable values into VS Code SecretStorage
+     */
+    private async persistSecrets(collection: Collection): Promise<void> {
+        if (!collection.environments) return;
+        for (const env of collection.environments) {
+            for (const variable of env.variables) {
+                if (variable.type === 'secret') {
+                    await this.context.secrets.store(
+                        this.secretKey(collection.id, env.id, variable.key),
+                        variable.value
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Restore secret variable values from VS Code SecretStorage into memory
+     */
+    private async restoreSecrets(collection: Collection): Promise<void> {
+        if (!collection.environments) return;
+        for (const env of collection.environments) {
+            for (const variable of env.variables) {
+                if (variable.type === 'secret') {
+                    const secret = await this.context.secrets.get(
+                        this.secretKey(collection.id, env.id, variable.key)
+                    );
+                    if (secret !== undefined) {
+                        variable.value = secret;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Delete a secret variable from SecretStorage
+     */
+    async deleteCollectionSecret(collectionId: string, envId: string, varKey: string): Promise<void> {
+        await this.context.secrets.delete(this.secretKey(collectionId, envId, varKey));
+    }
+
+    /**
+     * Delete all secret variables for a collection from SecretStorage
+     */
+    private async deleteAllSecrets(collection: Collection): Promise<void> {
+        if (!collection.environments) return;
+        for (const env of collection.environments) {
+            for (const variable of env.variables) {
+                if (variable.type === 'secret') {
+                    await this.context.secrets.delete(
+                        this.secretKey(collection.id, env.id, variable.key)
+                    );
+                }
+            }
+        }
     }
 
     /**
@@ -102,6 +186,9 @@ export class CollectionService {
 
         const collection = this.collections[index];
         this.collections.splice(index, 1);
+
+        // Clean up any secret values stored in SecretStorage
+        await this.deleteAllSecrets(collection);
 
         // For linked collections only delete the stub, never the source file
         const filePath = path.join(this.storageDir, `${this.sanitizeId(collection.id)}.json`);
@@ -222,8 +309,9 @@ export class CollectionService {
     async exportCollection(collectionId: string): Promise<string | undefined> {
         const collection = this.getCollection(collectionId);
         if (!collection) return undefined;
-        // Strip internal fields before exporting
-        const { sourcePath: _sourcePath, ...exportable } = collection;
+        // Strip internal fields and redact secrets before exporting
+        const redacted = this.redactSecrets(collection);
+        const { sourcePath: _sourcePath, ...exportable } = redacted;
         return JSON.stringify(exportable, null, 2);
     }
 
@@ -267,6 +355,8 @@ export class CollectionService {
                         isActive: false
                     }));
                 }
+                // Migrate any plaintext secrets from the imported data into SecretStorage
+                await this.persistSecrets(newCollection);
                 const stub = { id: newCollection.id, sourcePath };
                 await this.ensureStorageDir();
                 await fsFacade.writeFile(
@@ -353,6 +443,7 @@ export class CollectionService {
                             const sourceContent = await fsFacade.readFile(parsed.sourcePath, 'utf-8');
                             const collection = JSON.parse(sourceContent) as Collection;
                             collection.sourcePath = parsed.sourcePath;
+                            await this.restoreSecrets(collection);
                             this.collections.push(collection);
                         } catch {
                             vscode.window.showWarningMessage(
@@ -360,7 +451,9 @@ export class CollectionService {
                             );
                         }
                     } else {
-                        this.collections.push(parsed as Collection);
+                        const collection = parsed as Collection;
+                        await this.restoreSecrets(collection);
+                        this.collections.push(collection);
                     }
                 } catch {
                     // Skip invalid files
@@ -380,17 +473,22 @@ export class CollectionService {
      */
     private async saveCollection(collection: Collection): Promise<void> {
         await this.ensureStorageDir();
+
+        // Persist secret values to SecretStorage and redact them from the JSON
+        await this.persistSecrets(collection);
+        const redacted = this.redactSecrets(collection);
+
         if (collection.sourcePath) {
             if (!this.isValidSourcePath(collection.sourcePath)) {
                 throw new Error('Refusing to write to invalid source path');
             }
             // Linked collection — write back to the source file, stripping the internal sourcePath field
-            const { sourcePath: _sourcePath, ...data } = collection;
+            const { sourcePath: _sourcePath, ...data } = redacted;
             await fsFacade.writeFile(collection.sourcePath, JSON.stringify(data, null, 2), 'utf-8');
         } else {
-            const safeId = this.sanitizeId(collection.id);
+            const safeId = this.sanitizeId(redacted.id);
             const filePath = path.join(this.storageDir, `${safeId}.json`);
-            await fsFacade.writeFile(filePath, JSON.stringify(collection, null, 2), 'utf-8');
+            await fsFacade.writeFile(filePath, JSON.stringify(redacted, null, 2), 'utf-8');
         }
     }
 }
