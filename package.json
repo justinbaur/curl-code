@@ -196,6 +196,12 @@
         "category": "curl-code"
       },
       {
+        "command": "curl-code.newCollectionEnvironment",
+        "title": "New Environment",
+        "icon": "$(add)",
+        "category": "curl-code"
+      },
+      {
         "command": "curl-code.openRequestBuilder",
         "title": "Open Request Builder",
         "category": "curl-code"
@@ -276,10 +282,6 @@
           "when": "view == curl-code.collections && viewItem == collection"
         },
         {
-          "command": "curl-code.copyAsCurl",
-          "when": "view == curl-code.collections && viewItem == request"
-        },
-        {
           "command": "curl-code.setActiveEnvironment",
           "when": "view == curl-code.environments && viewItem == environment",
           "group": "inline"
@@ -348,6 +350,23 @@
         {
           "command": "curl-code.deleteEnvironment",
           "when": "view == curl-code.environments && viewItem == globalActiveEnvironment"
+        },
+        {
+          "command": "curl-code.deleteEnvironment",
+          "when": "view == curl-code.environments && viewItem == collectionEnvironment"
+        },
+        {
+          "command": "curl-code.deleteEnvironment",
+          "when": "view == curl-code.environments && viewItem == collectionActiveEnvironment"
+        },
+        {
+          "command": "curl-code.newCollectionEnvironment",
+          "when": "view == curl-code.environments && viewItem == environmentCollection",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.newCollectionEnvironment",
+          "when": "view == curl-code.environments && viewItem == environmentCollection"
         },
         {
           "command": "curl-code.editEnvironmentVariable",

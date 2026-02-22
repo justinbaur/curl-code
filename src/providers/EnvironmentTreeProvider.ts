@@ -18,6 +18,9 @@ type TreeItemData =
     | { type: 'collection-environment'; environment: Environment; collectionName: string; collectionId: string }
     | { type: 'variable'; variable: VariableTreeItem };
 
+// Re-export so command handlers can read collectionId from the item
+export type { TreeItemData as EnvironmentTreeItemData };
+
 export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItemData> {
     private _onDidChangeTreeData = new vscode.EventEmitter<TreeItemData | undefined | null>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -43,7 +46,7 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
      */
     getTreeItem(element: TreeItemData): vscode.TreeItem {
         if (element.type === 'collection') {
-            return this.createCollectionItem(element.collectionName, element.environments);
+            return this.createCollectionItem(element.collectionId, element.collectionName, element.environments);
         } else if ('environment' in element) {
             const collectionName = element.type === 'collection-environment'
                 ? element.collectionName
@@ -69,17 +72,15 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
                 environment: env
             })));
 
-            // 2. Collection nodes (for collections with environments)
+            // 2. Collection nodes (all collections, so users can add environments to any)
             const collections = this.collectionService.getCollections();
             for (const collection of collections) {
-                if (collection.environments && collection.environments.length > 0) {
-                    items.push({
-                        type: 'collection' as const,
-                        collectionId: collection.id,
-                        collectionName: collection.name,
-                        environments: collection.environments
-                    });
-                }
+                items.push({
+                    type: 'collection' as const,
+                    collectionId: collection.id,
+                    collectionName: collection.name,
+                    environments: collection.environments ?? []
+                });
             }
 
             return items;
@@ -115,15 +116,21 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
     /**
      * Create a tree item for a collection node
      */
-    private createCollectionItem(collectionName: string, environments: Environment[]): vscode.TreeItem {
+    private createCollectionItem(collectionId: string, collectionName: string, environments: Environment[]): vscode.TreeItem {
         const item = new vscode.TreeItem(
             collectionName,
-            vscode.TreeItemCollapsibleState.Collapsed
+            environments.length > 0
+                ? vscode.TreeItemCollapsibleState.Collapsed
+                : vscode.TreeItemCollapsibleState.None
         );
 
-        item.contextValue = 'collection';
+        // Distinct contextValue so the "New Environment" menu targets only environment-tree collection nodes
+        item.contextValue = 'environmentCollection';
+        item.id = `env-collection-${collectionId}`;
         item.iconPath = new vscode.ThemeIcon('folder');
-        item.description = `${environments.length} env${environments.length !== 1 ? 's' : ''}`;
+        item.description = environments.length > 0
+            ? `${environments.length} env${environments.length !== 1 ? 's' : ''}`
+            : 'no environments';
         item.tooltip = `Collection: ${collectionName}\n${environments.length} environment${environments.length !== 1 ? 's' : ''}`;
 
         return item;

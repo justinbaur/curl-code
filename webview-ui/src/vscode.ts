@@ -87,11 +87,12 @@ export type ExtensionMessage =
   | { type: 'requestError'; error: string }
   | { type: 'requestStarted' }
   | { type: 'requestCancelled' }
+  | { type: 'requestSaved' }
   | { type: 'loadEnvironments'; environments: Environment[]; activeId?: string };
 
 export type WebviewMessage =
   | { type: 'sendRequest'; request: HttpRequest }
-  | { type: 'saveRequest'; request: HttpRequest }
+  | { type: 'saveRequest'; request: HttpRequest; saveAs?: boolean }
   | { type: 'cancelRequest' }
   | { type: 'copyAsCurl'; request: HttpRequest }
   | { type: 'selectEnvironment'; environmentId: string | null }

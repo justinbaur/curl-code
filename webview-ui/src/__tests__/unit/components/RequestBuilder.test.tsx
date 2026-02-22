@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RequestBuilder } from '../../../components/RequestBuilder/RequestBuilder';
 import type { HttpRequest } from '../../../vscode';
@@ -67,87 +67,77 @@ vi.mock('../../../components/common/TabPanel', () => ({
 	),
 }));
 
-describe('RequestBuilder', () => {
-	const createMockRequest = (overrides?: Partial<HttpRequest>): HttpRequest => ({
-		id: 'test-request',
-		name: 'Test Request',
-		method: 'GET',
-		url: 'https://api.example.com',
-		queryParams: [],
-		headers: [],
-		body: { type: 'none', content: '' },
-		auth: { type: 'none' },
-		createdAt: 0,
-		updatedAt: 0,
-		...overrides,
-	});
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
+const createMockRequest = (overrides?: Partial<HttpRequest>): HttpRequest => ({
+	id: 'test-request',
+	name: 'Test Request',
+	method: 'GET',
+	url: 'https://api.example.com',
+	queryParams: [],
+	headers: [],
+	body: { type: 'none', content: '' },
+	auth: { type: 'none' },
+	createdAt: 0,
+	updatedAt: 0,
+	...overrides,
+});
+
+interface RenderOptions {
+	request?: HttpRequest;
+	isLoading?: boolean;
+	isDirty?: boolean;
+	onChange?: (request: HttpRequest) => void;
+	onSend?: () => void;
+	onSave?: () => void;
+	onSaveAs?: () => void;
+	onCopyAsCurl?: () => void;
+}
+
+function renderBuilder(opts: RenderOptions = {}) {
+	const props = {
+		request: opts.request ?? createMockRequest(),
+		isLoading: opts.isLoading ?? false,
+		isDirty: opts.isDirty ?? false,
+		onChange: opts.onChange ?? (vi.fn() as (request: HttpRequest) => void),
+		onSend: opts.onSend ?? (vi.fn() as () => void),
+		onSave: opts.onSave ?? (vi.fn() as () => void),
+		onSaveAs: opts.onSaveAs ?? (vi.fn() as () => void),
+		onCopyAsCurl: opts.onCopyAsCurl ?? (vi.fn() as () => void),
+	};
+	render(<RequestBuilder {...props} />);
+	return props;
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('RequestBuilder', () => {
 	describe('rendering', () => {
 		it('should render all main sections', () => {
-			const request = createMockRequest();
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
-
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder();
 
 			expect(screen.getByTestId('method-selector')).toBeInTheDocument();
 			expect(screen.getByTestId('url-bar')).toBeInTheDocument();
 			expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: /save as/i })).toBeInTheDocument();
 			expect(screen.getByRole('button', { name: /copy as curl/i })).toBeInTheDocument();
 			expect(screen.getByTestId('tab-panel')).toBeInTheDocument();
 		});
 
 		it('should render request name input', () => {
-			const request = createMockRequest({ name: 'My Request' });
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
-
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder({ request: createMockRequest({ name: 'My Request' }) });
 
 			const nameInput = screen.getByPlaceholderText('Request Name');
 			expect(nameInput).toHaveValue('My Request');
 		});
 
 		it('should render all tabs', () => {
-			const request = createMockRequest();
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
-
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder();
 
 			expect(screen.getByTestId('tab-params')).toBeInTheDocument();
 			expect(screen.getByTestId('tab-headers')).toBeInTheDocument();
@@ -156,22 +146,7 @@ describe('RequestBuilder', () => {
 		});
 
 		it('should show params tab content by default', () => {
-			const request = createMockRequest();
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
-
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder();
 
 			expect(screen.getByTestId('query-params-editor')).toBeInTheDocument();
 		});
@@ -181,30 +156,15 @@ describe('RequestBuilder', () => {
 		it('should call onChange when name changes', async () => {
 			const request = createMockRequest({ name: '' });
 			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder({ request, onChange });
 
 			const nameInput = screen.getByPlaceholderText('Request Name');
 			await user.click(nameInput);
 			await user.paste('New Name');
 
-			expect(onChange).toHaveBeenLastCalledWith({
-				...request,
-				name: 'New Name',
-			});
+			expect(onChange).toHaveBeenLastCalledWith({ ...request, name: 'New Name' });
 		});
 	});
 
@@ -212,29 +172,14 @@ describe('RequestBuilder', () => {
 		it('should call onChange when method changes', async () => {
 			const request = createMockRequest({ method: 'GET' });
 			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder({ request, onChange });
 
 			const methodSelector = screen.getByTestId('method-selector');
 			await user.selectOptions(methodSelector, 'POST');
 
-			expect(onChange).toHaveBeenCalledWith({
-				...request,
-				method: 'POST',
-			});
+			expect(onChange).toHaveBeenCalledWith({ ...request, method: 'POST' });
 		});
 	});
 
@@ -242,194 +187,137 @@ describe('RequestBuilder', () => {
 		it('should call onChange when URL changes', async () => {
 			const request = createMockRequest({ url: '' });
 			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder({ request, onChange });
 
 			const urlBar = screen.getByTestId('url-bar');
 			await user.click(urlBar);
 			await user.paste('https://api.example.com');
 
-			expect(onChange).toHaveBeenLastCalledWith({
-				...request,
-				url: 'https://api.example.com',
+			expect(onChange).toHaveBeenLastCalledWith({ ...request, url: 'https://api.example.com' });
+		});
+
+		it('should call onSend when Enter is pressed and URL is present', async () => {
+			const onSend = vi.fn();
+			const user = userEvent.setup();
+
+			renderBuilder({ request: createMockRequest({ url: 'https://api.example.com' }), onSend });
+
+			await user.click(screen.getByTestId('url-bar'));
+			await user.keyboard('{Enter}');
+
+			expect(onSend).toHaveBeenCalledTimes(1);
+		});
+
+		it('should not call onSend when Enter is pressed and URL is empty', async () => {
+			const onSend = vi.fn();
+			const user = userEvent.setup();
+
+			renderBuilder({ request: createMockRequest({ url: '' }), onSend });
+
+			await user.click(screen.getByTestId('url-bar'));
+			await user.keyboard('{Enter}');
+
+			expect(onSend).not.toHaveBeenCalled();
+		});
+
+		it('should not call onSend when Enter is pressed while loading', async () => {
+			const onSend = vi.fn();
+			const user = userEvent.setup();
+
+			renderBuilder({
+				request: createMockRequest({ url: 'https://api.example.com' }),
+				onSend,
+				isLoading: true,
 			});
+
+			await user.click(screen.getByTestId('url-bar'));
+			await user.keyboard('{Enter}');
+
+			expect(onSend).not.toHaveBeenCalled();
 		});
 	});
 
 	describe('send button', () => {
 		it('should be enabled when URL is provided and not loading', () => {
-			const request = createMockRequest({ url: 'https://api.example.com' });
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
+			renderBuilder({ request: createMockRequest({ url: 'https://api.example.com' }) });
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const sendButton = screen.getByRole('button', { name: /send/i });
-			expect(sendButton).not.toBeDisabled();
+			expect(screen.getByRole('button', { name: /send/i })).not.toBeDisabled();
 		});
 
 		it('should be disabled when URL is empty', () => {
-			const request = createMockRequest({ url: '' });
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
+			renderBuilder({ request: createMockRequest({ url: '' }) });
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const sendButton = screen.getByRole('button', { name: /send/i });
-			expect(sendButton).toBeDisabled();
+			expect(screen.getByRole('button', { name: /send/i })).toBeDisabled();
 		});
 
 		it('should be disabled when loading', () => {
-			const request = createMockRequest({ url: 'https://api.example.com' });
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
+			renderBuilder({ request: createMockRequest({ url: 'https://api.example.com' }), isLoading: true });
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={true}
-				/>
-			);
-
-			const sendButton = screen.getByRole('button', { name: /sending/i });
-			expect(sendButton).toBeDisabled();
+			expect(screen.getByRole('button', { name: /sending/i })).toBeDisabled();
 		});
 
 		it('should show "Sending..." when loading', () => {
-			const request = createMockRequest({ url: 'https://api.example.com' });
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
-
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={true}
-				/>
-			);
+			renderBuilder({ request: createMockRequest({ url: 'https://api.example.com' }), isLoading: true });
 
 			expect(screen.getByRole('button', { name: /sending/i })).toBeInTheDocument();
 		});
 
 		it('should call onSend when clicked', async () => {
-			const request = createMockRequest({ url: 'https://api.example.com' });
-			const onChange = vi.fn();
 			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder({ request: createMockRequest({ url: 'https://api.example.com' }), onSend });
 
-			const sendButton = screen.getByRole('button', { name: /send/i });
-			await user.click(sendButton);
+			await user.click(screen.getByRole('button', { name: /send/i }));
 
 			expect(onSend).toHaveBeenCalledTimes(1);
 		});
 	});
 
 	describe('toolbar buttons', () => {
+		it('should show "Save" label when not dirty', () => {
+			renderBuilder({ isDirty: false });
+
+			expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
+		});
+
+		it('should show "* Save" label when dirty', () => {
+			renderBuilder({ isDirty: true });
+
+			expect(screen.getByRole('button', { name: /^\* save$/i })).toBeInTheDocument();
+		});
+
 		it('should call onSave when Save button clicked', async () => {
-			const request = createMockRequest();
-			const onChange = vi.fn();
-			const onSend = vi.fn();
 			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder({ isDirty: false, onSave });
 
-			const saveButton = screen.getByRole('button', { name: /save/i });
-			await user.click(saveButton);
+			await user.click(screen.getByRole('button', { name: /^save$/i }));
 
 			expect(onSave).toHaveBeenCalledTimes(1);
 		});
 
+		it('should call onSaveAs when Save As button clicked', async () => {
+			const onSaveAs = vi.fn();
+			const user = userEvent.setup();
+
+			renderBuilder({ onSaveAs });
+
+			await user.click(screen.getByRole('button', { name: /save as/i }));
+
+			expect(onSaveAs).toHaveBeenCalledTimes(1);
+		});
+
 		it('should call onCopyAsCurl when Copy as cURL button clicked', async () => {
-			const request = createMockRequest();
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
 			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
+			renderBuilder({ onCopyAsCurl });
 
-			const copyButton = screen.getByRole('button', { name: /copy as curl/i });
-			await user.click(copyButton);
+			await user.click(screen.getByRole('button', { name: /copy as curl/i }));
 
 			expect(onCopyAsCurl).toHaveBeenCalledTimes(1);
 		});
@@ -437,78 +325,30 @@ describe('RequestBuilder', () => {
 
 	describe('tab switching', () => {
 		it('should switch to headers tab when clicked', async () => {
-			const request = createMockRequest();
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
+			renderBuilder();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const headersTab = screen.getByTestId('tab-headers');
-			await user.click(headersTab);
+			await user.click(screen.getByTestId('tab-headers'));
 
 			expect(screen.getByTestId('headers-editor')).toBeInTheDocument();
 			expect(screen.queryByTestId('query-params-editor')).not.toBeInTheDocument();
 		});
 
 		it('should switch to body tab when clicked', async () => {
-			const request = createMockRequest();
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
+			renderBuilder();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const bodyTab = screen.getByTestId('tab-body');
-			await user.click(bodyTab);
+			await user.click(screen.getByTestId('tab-body'));
 
 			expect(screen.getByTestId('body-editor')).toBeInTheDocument();
 			expect(screen.queryByTestId('query-params-editor')).not.toBeInTheDocument();
 		});
 
 		it('should switch to auth tab when clicked', async () => {
-			const request = createMockRequest();
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 			const user = userEvent.setup();
+			renderBuilder();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const authTab = screen.getByTestId('tab-auth');
-			await user.click(authTab);
+			await user.click(screen.getByTestId('tab-auth'));
 
 			expect(screen.getByTestId('auth-editor')).toBeInTheDocument();
 			expect(screen.queryByTestId('query-params-editor')).not.toBeInTheDocument();
@@ -517,128 +357,49 @@ describe('RequestBuilder', () => {
 
 	describe('tab badges', () => {
 		it('should show badge for enabled query params', () => {
-			const request = createMockRequest({
-				queryParams: [
-					{ key: 'foo', value: 'bar', enabled: true },
-					{ key: 'baz', value: 'qux', enabled: true },
-					{ key: 'disabled', value: 'value', enabled: false },
-				],
+			renderBuilder({
+				request: createMockRequest({
+					queryParams: [
+						{ key: 'foo', value: 'bar', enabled: true },
+						{ key: 'baz', value: 'qux', enabled: true },
+						{ key: 'disabled', value: 'value', enabled: false },
+					],
+				}),
 			});
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const badge = screen.getByTestId('badge-params');
-			expect(badge).toHaveTextContent('2');
+			expect(screen.getByTestId('badge-params')).toHaveTextContent('2');
 		});
 
 		it('should show badge for enabled headers', () => {
-			const request = createMockRequest({
-				headers: [
-					{ key: 'Content-Type', value: 'application/json', enabled: true },
-					{ key: 'Authorization', value: 'Bearer token', enabled: true },
-					{ key: 'X-Custom', value: 'value', enabled: false },
-				],
+			renderBuilder({
+				request: createMockRequest({
+					headers: [
+						{ key: 'Content-Type', value: 'application/json', enabled: true },
+						{ key: 'Authorization', value: 'Bearer token', enabled: true },
+						{ key: 'X-Custom', value: 'value', enabled: false },
+					],
+				}),
 			});
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const badge = screen.getByTestId('badge-headers');
-			expect(badge).toHaveTextContent('2');
+			expect(screen.getByTestId('badge-headers')).toHaveTextContent('2');
 		});
 
 		it('should show badge for non-none body', () => {
-			const request = createMockRequest({
-				body: { type: 'json', content: '{}' },
-			});
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
+			renderBuilder({ request: createMockRequest({ body: { type: 'json', content: '{}' } }) });
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const badge = screen.getByTestId('badge-body');
-			expect(badge).toHaveTextContent('1');
+			expect(screen.getByTestId('badge-body')).toHaveTextContent('1');
 		});
 
 		it('should show badge for non-none auth', () => {
-			const request = createMockRequest({
-				auth: { type: 'bearer', token: 'abc123' },
-			});
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
+			renderBuilder({ request: createMockRequest({ auth: { type: 'bearer', token: 'abc123' } }) });
 
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
-
-			const badge = screen.getByTestId('badge-auth');
-			expect(badge).toHaveTextContent('1');
+			expect(screen.getByTestId('badge-auth')).toHaveTextContent('1');
 		});
 
 		it('should not show badge when no params are enabled', () => {
-			const request = createMockRequest({
-				queryParams: [{ key: 'foo', value: 'bar', enabled: false }],
+			renderBuilder({
+				request: createMockRequest({ queryParams: [{ key: 'foo', value: 'bar', enabled: false }] }),
 			});
-			const onChange = vi.fn();
-			const onSend = vi.fn();
-			const onSave = vi.fn();
-			const onCopyAsCurl = vi.fn();
-
-			render(
-				<RequestBuilder
-					request={request}
-					onChange={onChange}
-					onSend={onSend}
-					onSave={onSave}
-					onCopyAsCurl={onCopyAsCurl}
-					isLoading={false}
-				/>
-			);
 
 			expect(screen.queryByTestId('badge-params')).not.toBeInTheDocument();
 		});

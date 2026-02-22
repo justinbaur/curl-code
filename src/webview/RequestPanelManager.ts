@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import type { HttpRequest } from '../types/request';
 import type { Environment, Folder } from '../types/collection';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../types/messages';
-import { createEmptyRequest, normalizeRequest } from '../types/request';
+import { createEmptyRequest, normalizeRequest, generateId } from '../types/request';
 import { CurlExecutor } from '../curl/executor';
 import { CollectionService } from '../services/CollectionService';
 import { HistoryService } from '../services/HistoryService';
@@ -207,7 +207,19 @@ export class RequestPanelManager {
 
                 case 'saveRequest':
                     setCurrentRequest(message.request);
-                    await this.pickCollectionAndSave(message.request);
+                    if (!message.saveAs && message.request.collectionId) {
+                        // Smart save — update in-place without showing the picker
+                        await this.collectionService.saveRequest(
+                            message.request,
+                            message.request.collectionId,
+                            message.request.folderId
+                        );
+                        vscode.window.showInformationMessage('Request saved');
+                        this.sendMessageTo(panel, { type: 'requestSaved' });
+                        panel.title = this.panelTitle(message.request);
+                    } else {
+                        await this.pickCollectionAndSave(message.request, panel);
+                    }
                     break;
 
                 case 'cancelRequest':
@@ -227,7 +239,7 @@ export class RequestPanelManager {
 
                 case 'updateRequest':
                     setCurrentRequest(message.request);
-                    panel.title = this.panelTitle(message.request);
+                    panel.title = `* ${this.panelTitle(message.request)}`;
                     break;
 
                 case 'selectEnvironment':
@@ -321,7 +333,18 @@ export class RequestPanelManager {
     /**
      * Show a collection (then folder) quick pick and save the request
      */
-    private async pickCollectionAndSave(request: HttpRequest): Promise<void> {
+    private async pickCollectionAndSave(request: HttpRequest, panel: vscode.WebviewPanel): Promise<void> {
+        // Prompt for a new name — pre-filled with the current name
+        const newName = await vscode.window.showInputBox({
+            prompt: 'Request name',
+            value: request.name,
+            validateInput: v => v.trim() ? undefined : 'Name cannot be empty'
+        });
+        if (newName === undefined) { return; } // user cancelled
+
+        // Create a copy with a fresh ID so the original is not overwritten
+        request = { ...request, id: generateId(), name: newName.trim(), collectionId: undefined, folderId: undefined };
+
         let collections = this.collectionService.getCollections();
 
         if (collections.length === 0) {
@@ -333,6 +356,8 @@ export class RequestPanelManager {
             const newCollection = await this.collectionService.createCollection('Default Collection');
             await this.collectionService.saveRequest(request, newCollection.id);
             vscode.window.showInformationMessage(`Request saved to "${newCollection.name}"`);
+            this.sendMessageTo(panel, { type: 'requestSaved' });
+            panel.title = this.panelTitle(request);
             return;
         }
 
@@ -374,6 +399,8 @@ export class RequestPanelManager {
 
         await this.collectionService.saveRequest(request, selectedCollection.id, folderId);
         vscode.window.showInformationMessage(`Request saved to "${collection.name}"`);
+        this.sendMessageTo(panel, { type: 'requestSaved' });
+        panel.title = this.panelTitle(request);
     }
 
     private flattenFolders(folders: Folder[], parentPath = ''): Array<{ folder: Folder; path: string }> {

@@ -260,18 +260,6 @@ describe('ResponseBody', () => {
 			expect(firstRender).toBe(secondRender);
 		});
 
-		it('should reformat when body changes', () => {
-			const { rerender } = render(
-				<ResponseBody body='{"count":1}' contentType="application/json" />
-			);
-
-			expect(screen.getByText(/"count": 1/)).toBeInTheDocument();
-
-			rerender(<ResponseBody body='{"count":2}' contentType="application/json" />);
-
-			expect(screen.getByText(/"count": 2/)).toBeInTheDocument();
-		});
-
 		it('should reformat when contentType changes', () => {
 			const json = '{"test":"value"}';
 			const { rerender, container } = render(

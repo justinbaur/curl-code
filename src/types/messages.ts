@@ -12,6 +12,7 @@ export type ExtensionToWebviewMessage =
     | { type: 'requestError'; error: string }
     | { type: 'requestStarted' }
     | { type: 'requestCancelled' }
+    | { type: 'requestSaved' }
     | { type: 'loadEnvironments'; environments: Environment[]; activeId?: string }
     | { type: 'themeChanged'; theme: 'light' | 'dark' | 'high-contrast' }
     | { type: 'updateRequest'; request: Partial<HttpRequest> };
@@ -19,7 +20,7 @@ export type ExtensionToWebviewMessage =
 // Webview -> Extension messages
 export type WebviewToExtensionMessage =
     | { type: 'sendRequest'; request: HttpRequest }
-    | { type: 'saveRequest'; request: HttpRequest }
+    | { type: 'saveRequest'; request: HttpRequest; saveAs?: boolean }
     | { type: 'cancelRequest' }
     | { type: 'copyAsCurl'; request: HttpRequest }
     | { type: 'selectEnvironment'; environmentId: string | null }

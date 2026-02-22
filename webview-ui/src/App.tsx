@@ -2,7 +2,7 @@
  * Main App component for curl-code webview
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { vscode } from './vscode';
 import { useRequestStore } from './state/requestStore';
 import { useResponseStore } from './state/responseStore';
@@ -17,6 +17,7 @@ export default function App() {
   const { response, error, setResponse, setError, clearResponse } =
     useResponseStore();
   const { setEnvironments } = useEnvironmentStore();
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     // Notify extension that webview is ready
@@ -27,6 +28,7 @@ export default function App() {
       switch (message.type) {
         case 'loadRequest':
           setRequest(message.request);
+          setIsDirty(false);
           clearResponse();
           break;
         case 'responseReceived':
@@ -44,6 +46,9 @@ export default function App() {
         case 'requestCancelled':
           setLoading(false);
           break;
+        case 'requestSaved':
+          setIsDirty(false);
+          break;
         case 'loadEnvironments':
           setEnvironments(message.environments, message.activeId);
           break;
@@ -52,6 +57,11 @@ export default function App() {
 
     return unsubscribe;
   }, [setRequest, setResponse, setError, setLoading, clearResponse, setEnvironments]);
+
+  const handleChange = (updated: Parameters<typeof setRequest>[0]) => {
+    setRequest(updated);
+    setIsDirty(true);
+  };
 
   const handleSend = () => {
     if (request) {
@@ -62,6 +72,12 @@ export default function App() {
   const handleSave = () => {
     if (request) {
       vscode.postMessage({ type: 'saveRequest', request });
+    }
+  };
+
+  const handleSaveAs = () => {
+    if (request) {
+      vscode.postMessage({ type: 'saveRequest', request, saveAs: true });
     }
   };
 
@@ -92,11 +108,13 @@ export default function App() {
       <div className="request-panel">
         <RequestBuilder
           request={request}
-          onChange={setRequest}
+          onChange={handleChange}
           onSend={handleSend}
           onSave={handleSave}
+          onSaveAs={handleSaveAs}
           onCopyAsCurl={handleCopyAsCurl}
           isLoading={isLoading}
+          isDirty={isDirty}
         />
       </div>
       <div className="response-panel">

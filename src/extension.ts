@@ -13,6 +13,7 @@ import { CollectionService } from './services/CollectionService';
 import { HistoryService } from './services/HistoryService';
 import { EnvironmentService } from './services/EnvironmentService';
 import { CurlExecutor } from './curl/executor';
+import { generateId } from './types/request';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('curl-code extension is now active');
@@ -404,6 +405,39 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
 
+        vscode.commands.registerCommand('curl-code.newCollectionEnvironment', async (item) => {
+            const collectionId: string | undefined = item?.collectionId;
+            if (!collectionId) {
+                vscode.window.showErrorMessage('Please select a collection');
+                return;
+            }
+
+            const name = await vscode.window.showInputBox({
+                prompt: 'Enter environment name',
+                placeHolder: 'Production'
+            });
+            if (!name) { return; }
+
+            const collection = collectionService.getCollections().find(c => c.id === collectionId);
+            if (!collection) {
+                vscode.window.showErrorMessage('Collection not found');
+                return;
+            }
+
+            if (!collection.environments) {
+                collection.environments = [];
+            }
+            collection.environments.push({
+                id: generateId(),
+                name,
+                variables: [],
+                isActive: false
+            });
+
+            await collectionService.updateCollection(collection.id, collection);
+            vscode.window.showInformationMessage(`Environment "${name}" created`);
+        }),
+
         vscode.commands.registerCommand('curl-code.refreshEnvironments', () => {
             environmentProvider.refresh();
         }),
@@ -509,20 +543,43 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
 
         vscode.commands.registerCommand('curl-code.deleteEnvironment', async (item) => {
-            if (!item?.id || !item?.name) {
+            const env = item?.environment;
+            if (!env?.id || !env?.name) {
                 return;
             }
 
             const confirm = await vscode.window.showWarningMessage(
-                `Delete environment "${item.name}"? This will delete all variables in this environment.`,
+                `Delete environment "${env.name}"? This will delete all variables in this environment.`,
                 { modal: true },
                 'Delete'
             );
 
-            if (confirm === 'Delete') {
-                await environmentService.deleteEnvironment(item.id);
-                vscode.window.showInformationMessage(`Environment "${item.name}" deleted`);
+            if (confirm !== 'Delete') {
+                return;
             }
+
+            // Global environment
+            if (environmentService.getEnvironment(env.id)) {
+                await environmentService.deleteEnvironment(env.id);
+                vscode.window.showInformationMessage(`Environment "${env.name}" deleted`);
+                return;
+            }
+
+            // Collection environment
+            const collections = collectionService.getCollections();
+            for (const collection of collections) {
+                if (!collection.environments) { continue; }
+                const idx = collection.environments.findIndex(e => e.id === env.id);
+                if (idx !== -1) {
+                    collection.environments.splice(idx, 1);
+                    await collectionService.updateCollection(collection.id, collection);
+                    environmentProvider.refresh();
+                    vscode.window.showInformationMessage(`Environment "${env.name}" deleted`);
+                    return;
+                }
+            }
+
+            vscode.window.showErrorMessage('Environment not found');
         }),
 
         vscode.commands.registerCommand('curl-code.quickSwitchEnvironment', async () => {

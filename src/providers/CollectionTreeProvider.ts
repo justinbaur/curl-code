@@ -125,12 +125,12 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItemD
     private getMethodIcon(method: string): vscode.ThemeIcon {
         // Use different icons/colors for different methods
         const methodIcons: Record<string, { icon: string; color: string }> = {
-            'GET': { icon: 'circle-filled', color: 'charts.green' },
-            'POST': { icon: 'circle-filled', color: 'charts.yellow' },
-            'PUT': { icon: 'circle-filled', color: 'charts.blue' },
-            'PATCH': { icon: 'circle-filled', color: 'charts.purple' },
+            'GET': { icon: 'circle-filled', color: 'charts.blue' },
+            'POST': { icon: 'circle-filled', color: 'charts.orange' },
+            'PUT': { icon: 'circle-filled', color: 'charts.purple' },
+            'PATCH': { icon: 'circle-filled', color: 'charts.yellow' },
             'DELETE': { icon: 'circle-filled', color: 'charts.red' },
-            'HEAD': { icon: 'circle-outline', color: 'charts.green' },
+            'HEAD': { icon: 'circle-outline', color: 'charts.blue' },
             'OPTIONS': { icon: 'circle-outline', color: 'charts.gray' }
         };
 
