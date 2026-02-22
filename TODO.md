@@ -1,8 +1,5 @@
 # TODO
 
-## Fixes
-
-- Executor has support for Windows cURL
 
 ## Features
 

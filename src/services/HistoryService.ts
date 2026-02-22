@@ -46,9 +46,20 @@ export class HistoryService {
             };
         }
 
+        // Strip sensitive auth credentials before persisting to history
+        const sanitizedRequest: HttpRequest = {
+            ...request,
+            auth: {
+                ...request.auth,
+                password: undefined,
+                token: undefined,
+                apiKeyValue: undefined
+            }
+        };
+
         const entry: HistoryEntry = {
             id: generateId(),
-            request: { ...request },
+            request: sanitizedRequest,
             response,
             error,
             timestamp: Date.now()

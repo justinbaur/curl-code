@@ -44,7 +44,11 @@ export class CurlExecutor {
             let stderr = '';
 
             // Use -w to get timing and status info
-            const writeOutFormat = '\n---CURL_INFO---\n%{http_code}\n%{time_total}\n%{size_download}';
+            // Use curl's own \n escape (literal backslash-n) rather than actual LF bytes.
+            // Actual LF characters in command-line arguments are unreliable on Windows
+            // because the C runtime argument parser may treat them as delimiters.
+            // curl interprets \n in --write-out format strings as newline on all platforms.
+            const writeOutFormat = '\\n---CURL_INFO---\\n%{http_code}\\n%{time_total}\\n%{size_download}';
             const fullArgs = [
                 ...args,
                 '-w', writeOutFormat,

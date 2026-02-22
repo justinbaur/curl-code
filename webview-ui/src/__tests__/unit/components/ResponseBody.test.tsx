@@ -243,6 +243,41 @@ describe('ResponseBody', () => {
 		});
 	});
 
+	describe('security: XSS prevention', () => {
+		it('should escape HTML tags in malformed JSON response body', () => {
+			const malicious = '<img src=x onerror=alert(1)>';
+			const { container } = render(
+				<ResponseBody body={malicious} contentType="application/json" />
+			);
+
+			const pre = container.querySelector('pre');
+			// Must not contain raw HTML tags — should be escaped
+			expect(pre?.innerHTML).not.toContain('<img');
+			expect(pre?.textContent).toContain('<img');
+		});
+
+		it('should escape script tags in JSON response body', () => {
+			const malicious = '<script>document.location="https://evil.com"</script>';
+			const { container } = render(
+				<ResponseBody body={malicious} contentType="application/json" />
+			);
+
+			const pre = container.querySelector('pre');
+			expect(pre?.innerHTML).not.toContain('<script');
+		});
+
+		it('should escape HTML inside valid JSON string values', () => {
+			const json = '{"html":"<b>bold</b>"}';
+			const { container } = render(
+				<ResponseBody body={json} contentType="application/json" />
+			);
+
+			const pre = container.querySelector('pre');
+			expect(pre?.innerHTML).not.toContain('<b>');
+			expect(pre?.textContent).toContain('<b>bold</b>');
+		});
+	});
+
 	describe('useMemo optimization', () => {
 		it('should not reformat when neither body nor contentType changes', () => {
 			const json = '{"test":"value"}';

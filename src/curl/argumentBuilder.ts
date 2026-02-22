@@ -163,7 +163,15 @@ export class ArgumentBuilder {
      * Escape an argument for shell display
      */
     private escapeArg(arg: string): string {
-        // If the argument contains spaces, quotes, or special characters, quote it
+        if (process.platform === 'win32') {
+            // Windows CMD: wrap in double quotes if the argument contains spaces or quotes.
+            // Only " needs escaping inside a double-quoted string (with backslash).
+            if (/[\s"^&|<>]/.test(arg)) {
+                return `"${arg.replace(/"/g, '\\"')}"`;
+            }
+            return arg;
+        }
+        // Unix: use single quotes; escape embedded single quotes with '\''
         if (/[\s"'\\$`!]/.test(arg)) {
             return `'${arg.replace(/'/g, "'\\''")}'`;
         }

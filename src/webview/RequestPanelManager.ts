@@ -227,15 +227,25 @@ export class RequestPanelManager {
                     this.sendMessageTo(panel, { type: 'requestCancelled' });
                     break;
 
-                case 'copyAsCurl':
+                case 'copyAsCurl': {
                     const curlCommand = this.curlExecutor.buildCurlCommand(message.request);
                     await vscode.env.clipboard.writeText(curlCommand);
-                    vscode.window.showInformationMessage('cURL command copied to clipboard');
+                    const hasAuth = message.request.auth?.type !== 'none' && message.request.auth?.type !== undefined;
+                    vscode.window.showInformationMessage(
+                        hasAuth
+                            ? 'cURL command copied to clipboard (contains credentials)'
+                            : 'cURL command copied to clipboard'
+                    );
                     break;
+                }
 
-                case 'openExternal':
-                    vscode.env.openExternal(vscode.Uri.parse(message.url));
+                case 'openExternal': {
+                    const uri = vscode.Uri.parse(message.url);
+                    if (uri.scheme === 'http' || uri.scheme === 'https') {
+                        vscode.env.openExternal(uri);
+                    }
                     break;
+                }
 
                 case 'updateRequest':
                     setCurrentRequest(message.request);

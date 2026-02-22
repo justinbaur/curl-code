@@ -20,6 +20,27 @@ export class CollectionService {
     }
 
     /**
+     * Sanitize a collection ID to prevent path traversal.
+     * Only allows alphanumeric characters, underscores, and hyphens.
+     */
+    private sanitizeId(id: string): string {
+        return id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
+    /**
+     * Validate a linked-collection source path.
+     * Must be absolute, end with .json, and not contain traversal sequences.
+     */
+    private isValidSourcePath(sourcePath: string): boolean {
+        if (!path.isAbsolute(sourcePath)) return false;
+        if (!sourcePath.endsWith('.json')) return false;
+        // Reject paths with traversal sequences
+        const normalized = path.resolve(sourcePath);
+        if (normalized !== sourcePath) return false;
+        return true;
+    }
+
+    /**
      * Initialize the service and load collections
      */
     async initialize(): Promise<void> {
@@ -83,7 +104,7 @@ export class CollectionService {
         this.collections.splice(index, 1);
 
         // For linked collections only delete the stub, never the source file
-        const filePath = path.join(this.storageDir, `${collection.id}.json`);
+        const filePath = path.join(this.storageDir, `${this.sanitizeId(collection.id)}.json`);
         try {
             await fsFacade.unlink(filePath);
         } catch {
@@ -232,8 +253,14 @@ export class CollectionService {
             let newCollection: Collection;
 
             if (sourcePath) {
+                // Validate the source path to prevent arbitrary file access
+                if (!this.isValidSourcePath(sourcePath)) {
+                    vscode.window.showErrorMessage('Invalid collection source path');
+                    return undefined;
+                }
                 // Linked collection — preserve original IDs, write a stub pointing to the source file
                 newCollection = { ...parsed, sourcePath };
+                newCollection.id = this.sanitizeId(newCollection.id);
                 if (newCollection.environments && newCollection.environments.length > 0) {
                     newCollection.environments = newCollection.environments.map(env => ({
                         ...env,
@@ -315,7 +342,13 @@ export class CollectionService {
                     const parsed = JSON.parse(content);
 
                     if (parsed.sourcePath && Object.keys(parsed).length === 2) {
-                        // Linked collection stub — load the real content from the source file
+                        // Linked collection stub — validate source path before reading
+                        if (!this.isValidSourcePath(parsed.sourcePath)) {
+                            vscode.window.showWarningMessage(
+                                `Skipping linked collection with invalid source path: ${parsed.sourcePath}`
+                            );
+                            continue;
+                        }
                         try {
                             const sourceContent = await fsFacade.readFile(parsed.sourcePath, 'utf-8');
                             const collection = JSON.parse(sourceContent) as Collection;
@@ -348,11 +381,15 @@ export class CollectionService {
     private async saveCollection(collection: Collection): Promise<void> {
         await this.ensureStorageDir();
         if (collection.sourcePath) {
+            if (!this.isValidSourcePath(collection.sourcePath)) {
+                throw new Error('Refusing to write to invalid source path');
+            }
             // Linked collection — write back to the source file, stripping the internal sourcePath field
             const { sourcePath: _sourcePath, ...data } = collection;
             await fsFacade.writeFile(collection.sourcePath, JSON.stringify(data, null, 2), 'utf-8');
         } else {
-            const filePath = path.join(this.storageDir, `${collection.id}.json`);
+            const safeId = this.sanitizeId(collection.id);
+            const filePath = path.join(this.storageDir, `${safeId}.json`);
             await fsFacade.writeFile(filePath, JSON.stringify(collection, null, 2), 'utf-8');
         }
     }

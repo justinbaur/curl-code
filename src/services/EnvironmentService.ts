@@ -9,6 +9,7 @@ import { createEmptyEnvironment } from '../types/collection';
 export class EnvironmentService {
     private static readonly ENVIRONMENTS_KEY = 'curl-code.environments';
     private static readonly ACTIVE_ENV_KEY = 'curl-code.activeEnvironment';
+    private static readonly SECRET_PREFIX = 'curl-code.secret.';
     private environments: Environment[] = [];
     private activeEnvironmentId: string | null = null;
     private onChangeEmitter = new vscode.EventEmitter<void>();
@@ -17,10 +18,17 @@ export class EnvironmentService {
     constructor(private context: vscode.ExtensionContext) {}
 
     /**
+     * Build a SecretStorage key for a secret variable
+     */
+    private secretKey(envId: string, varKey: string): string {
+        return `${EnvironmentService.SECRET_PREFIX}${envId}.${varKey}`;
+    }
+
+    /**
      * Initialize the service and load environments
      */
     async initialize(): Promise<void> {
-        this.loadEnvironments();
+        await this.loadEnvironments();
     }
 
     /**
@@ -157,6 +165,10 @@ export class EnvironmentService {
         const index = env.variables.findIndex(v => v.key === key);
         if (index === -1) return false;
 
+        const variable = env.variables[index];
+        if (variable.type === 'secret') {
+            await this.context.secrets.delete(this.secretKey(environmentId, key));
+        }
         env.variables.splice(index, 1);
         await this.saveEnvironments();
         this.onChangeEmitter.fire();
@@ -195,19 +207,55 @@ export class EnvironmentService {
     }
 
     /**
-     * Load environments from storage
+     * Load environments from storage, restoring secret values from SecretStorage.
      */
-    private loadEnvironments(): void {
+    private async loadEnvironments(): Promise<void> {
         const stored = this.context.globalState.get<Environment[]>(EnvironmentService.ENVIRONMENTS_KEY);
         this.environments = stored || [];
         this.activeEnvironmentId = this.context.globalState.get<string | null>(EnvironmentService.ACTIVE_ENV_KEY) || null;
+
+        // Restore secret variable values from SecretStorage into memory
+        for (const env of this.environments) {
+            for (const variable of env.variables) {
+                if (variable.type === 'secret') {
+                    const secret = await this.context.secrets.get(this.secretKey(env.id, variable.key));
+                    if (secret !== undefined) {
+                        variable.value = secret;
+                    }
+                }
+            }
+        }
     }
 
     /**
-     * Save environments to storage
+     * Save environments to storage.
+     * Secret variable values are stored in SecretStorage; globalState keeps a redacted copy.
      */
     private async saveEnvironments(): Promise<void> {
-        await this.context.globalState.update(EnvironmentService.ENVIRONMENTS_KEY, this.environments);
+        // Move secret values into SecretStorage and redact them for globalState
+        const redacted: Environment[] = this.environments.map(env => ({
+            ...env,
+            variables: env.variables.map(v => {
+                if (v.type === 'secret') {
+                    return { ...v, value: '' };
+                }
+                return v;
+            })
+        }));
+
+        // Persist secret values in encrypted storage
+        for (const env of this.environments) {
+            for (const variable of env.variables) {
+                if (variable.type === 'secret') {
+                    await this.context.secrets.store(
+                        this.secretKey(env.id, variable.key),
+                        variable.value
+                    );
+                }
+            }
+        }
+
+        await this.context.globalState.update(EnvironmentService.ENVIRONMENTS_KEY, redacted);
         await this.context.globalState.update(EnvironmentService.ACTIVE_ENV_KEY, this.activeEnvironmentId);
     }
 }
