@@ -372,4 +372,184 @@ describe('CollectionService Integration', () => {
 			expect(imported).to.be.undefined; // Cancelled
 		});
 	});
+
+	describe('secret redaction', () => {
+		function createCollectionWithSecret(overrides?: Partial<Collection>): Collection {
+			return {
+				id: 'col_secret_test',
+				name: 'Secret Test',
+				requests: [],
+				folders: [],
+				variables: [],
+				environments: [{
+					id: 'env_1',
+					name: 'Production',
+					isActive: false,
+					variables: [
+						{ key: 'BASE_URL', value: 'https://api.example.com', type: 'default', enabled: true },
+						{ key: 'API_KEY', value: 'super-secret-key', type: 'secret', enabled: true }
+					]
+				}],
+				createdAt: Date.now(),
+				updatedAt: Date.now(),
+				...overrides
+			};
+		}
+
+		it('should redact secret values from JSON written to disk', async () => {
+			const collection = createCollectionWithSecret();
+			await service.importCollection(JSON.stringify(collection));
+
+			// Find the writeFile call that wrote the full collection (not the first call which may be ensureStorageDir)
+			const writeCall = fsStub.writeFile.lastCall;
+			const writtenContent = JSON.parse(writeCall.args[1]);
+			const env = writtenContent.environments[0];
+			const defaultVar = env.variables.find((v: any) => v.key === 'BASE_URL');
+			const secretVar = env.variables.find((v: any) => v.key === 'API_KEY');
+
+			expect(defaultVar.value).to.equal('https://api.example.com');
+			expect(secretVar.value).to.equal(''); // Redacted
+			expect(secretVar.type).to.equal('secret'); // Type preserved
+		});
+
+		it('should persist secret values to SecretStorage on save', async () => {
+			const collection = createCollectionWithSecret();
+			await service.importCollection(JSON.stringify(collection));
+
+			// The secret should be stored in context.secrets
+			const storedSecret = await context.secrets.get(
+				'curl-code.collection-secret.col_secret_test.env_1.API_KEY'
+			);
+			expect(storedSecret).to.equal('super-secret-key');
+		});
+
+		it('should restore secrets from SecretStorage on load', async () => {
+			// Pre-populate SecretStorage with a secret value
+			await context.secrets.store(
+				'curl-code.collection-secret.col_secret_test.env_1.API_KEY',
+				'restored-secret-value'
+			);
+
+			// Prepare a redacted collection on disk (secret value is empty)
+			const redactedCollection: Collection = {
+				id: 'col_secret_test',
+				name: 'Secret Test',
+				requests: [],
+				folders: [],
+				variables: [],
+				environments: [{
+					id: 'env_1',
+					name: 'Production',
+					isActive: false,
+					variables: [
+						{ key: 'BASE_URL', value: 'https://api.example.com', type: 'default', enabled: true },
+						{ key: 'API_KEY', value: '', type: 'secret', enabled: true }
+					]
+				}],
+				createdAt: 1000,
+				updatedAt: 1000
+			};
+
+			fsStub.readdir.resolves(['col_secret_test.json']);
+			fsStub.readFile.resolves(JSON.stringify(redactedCollection));
+
+			await service.initialize();
+
+			const loaded = service.getCollection('col_secret_test');
+			expect(loaded).to.exist;
+			const secretVar = loaded!.environments![0].variables.find(v => v.key === 'API_KEY');
+			expect(secretVar?.value).to.equal('restored-secret-value');
+		});
+
+		it('should redact secrets in exported JSON', async () => {
+			const collection = createCollectionWithSecret();
+			await service.importCollection(JSON.stringify(collection));
+
+			const exported = await service.exportCollection('col_secret_test');
+			expect(exported).to.be.a('string');
+
+			const parsed = JSON.parse(exported!);
+			const secretVar = parsed.environments[0].variables.find((v: any) => v.key === 'API_KEY');
+			expect(secretVar.value).to.equal('');
+		});
+
+		it('should clean up SecretStorage when deleting a collection', async () => {
+			const collection = createCollectionWithSecret();
+			await service.importCollection(JSON.stringify(collection));
+
+			// Verify secret exists
+			const before = await context.secrets.get(
+				'curl-code.collection-secret.col_secret_test.env_1.API_KEY'
+			);
+			expect(before).to.equal('super-secret-key');
+
+			await service.deleteCollection('col_secret_test');
+
+			// Verify secret is gone
+			const after = await context.secrets.get(
+				'curl-code.collection-secret.col_secret_test.env_1.API_KEY'
+			);
+			expect(after).to.be.undefined;
+		});
+
+		it('should delete a single secret via deleteCollectionSecret', async () => {
+			await context.secrets.store(
+				'curl-code.collection-secret.col_1.env_1.MY_SECRET',
+				'secret-value'
+			);
+
+			await service.deleteCollectionSecret('col_1', 'env_1', 'MY_SECRET');
+
+			const result = await context.secrets.get(
+				'curl-code.collection-secret.col_1.env_1.MY_SECRET'
+			);
+			expect(result).to.be.undefined;
+		});
+
+		it('should persist plaintext secrets from imported collection', async () => {
+			// Import a collection that has a secret with a non-empty value (e.g. from an older export)
+			const collectionWithPlaintextSecret = createCollectionWithSecret({
+				id: 'col_imported',
+				name: 'Imported With Secret'
+			});
+
+			await service.importCollection(JSON.stringify(collectionWithPlaintextSecret));
+
+			// The plaintext secret should now be in SecretStorage
+			const stored = await context.secrets.get(
+				'curl-code.collection-secret.col_imported.env_1.API_KEY'
+			);
+			expect(stored).to.equal('super-secret-key');
+		});
+
+		it('should redact secrets from linked collection source file on save', async () => {
+			const sourcePath = '/projects/api/collection.json';
+			const collection = createCollectionWithSecret({
+				id: 'col_linked_secret',
+				name: 'Linked Secret'
+			});
+
+			await service.importCollection(JSON.stringify(collection), sourcePath);
+			fsStub.writeFile.resetHistory();
+
+			// Trigger a save by adding a request
+			await service.saveRequest(
+				createMockRequest({ name: 'New Request' }),
+				'col_linked_secret'
+			);
+
+			// Find the write to the source file
+			const writeCall = fsStub.writeFile.getCalls().find(
+				(call: sinon.SinonSpyCall) => call.args[0] === sourcePath
+			);
+			expect(writeCall).to.exist;
+
+			const writtenContent = JSON.parse(writeCall!.args[1]);
+			const secretVar = writtenContent.environments[0].variables.find(
+				(v: any) => v.key === 'API_KEY'
+			);
+			expect(secretVar.value).to.equal(''); // Redacted in source file
+			expect(secretVar.type).to.equal('secret');
+		});
+	});
 });
