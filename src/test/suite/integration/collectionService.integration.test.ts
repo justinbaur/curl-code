@@ -414,11 +414,11 @@ describe('CollectionService Integration', () => {
 
 		it('should persist secret values to SecretStorage on save', async () => {
 			const collection = createCollectionWithSecret();
-			await service.importCollection(JSON.stringify(collection));
+			const imported = await service.importCollection(JSON.stringify(collection));
 
-			// The secret should be stored in context.secrets
+			// The secret should be stored in context.secrets (using the generated IDs)
 			const storedSecret = await context.secrets.get(
-				'curl-code.collection-secret.col_secret_test.env_1.API_KEY'
+				`curl-code.collection-secret.${imported!.id}.${imported!.environments![0].id}.API_KEY`
 			);
 			expect(storedSecret).to.equal('super-secret-key');
 		});
@@ -463,9 +463,9 @@ describe('CollectionService Integration', () => {
 
 		it('should redact secrets in exported JSON', async () => {
 			const collection = createCollectionWithSecret();
-			await service.importCollection(JSON.stringify(collection));
+			const imported = await service.importCollection(JSON.stringify(collection));
 
-			const exported = await service.exportCollection('col_secret_test');
+			const exported = await service.exportCollection(imported!.id);
 			expect(exported).to.be.a('string');
 
 			const parsed = JSON.parse(exported!);
@@ -475,20 +475,17 @@ describe('CollectionService Integration', () => {
 
 		it('should clean up SecretStorage when deleting a collection', async () => {
 			const collection = createCollectionWithSecret();
-			await service.importCollection(JSON.stringify(collection));
+			const imported = await service.importCollection(JSON.stringify(collection));
+			const secretKey = `curl-code.collection-secret.${imported!.id}.${imported!.environments![0].id}.API_KEY`;
 
 			// Verify secret exists
-			const before = await context.secrets.get(
-				'curl-code.collection-secret.col_secret_test.env_1.API_KEY'
-			);
+			const before = await context.secrets.get(secretKey);
 			expect(before).to.equal('super-secret-key');
 
-			await service.deleteCollection('col_secret_test');
+			await service.deleteCollection(imported!.id);
 
 			// Verify secret is gone
-			const after = await context.secrets.get(
-				'curl-code.collection-secret.col_secret_test.env_1.API_KEY'
-			);
+			const after = await context.secrets.get(secretKey);
 			expect(after).to.be.undefined;
 		});
 
@@ -513,11 +510,11 @@ describe('CollectionService Integration', () => {
 				name: 'Imported With Secret'
 			});
 
-			await service.importCollection(JSON.stringify(collectionWithPlaintextSecret));
+			const imported = await service.importCollection(JSON.stringify(collectionWithPlaintextSecret));
 
-			// The plaintext secret should now be in SecretStorage
+			// The plaintext secret should now be in SecretStorage (using the generated IDs)
 			const stored = await context.secrets.get(
-				'curl-code.collection-secret.col_imported.env_1.API_KEY'
+				`curl-code.collection-secret.${imported!.id}.${imported!.environments![0].id}.API_KEY`
 			);
 			expect(stored).to.equal('super-secret-key');
 		});
