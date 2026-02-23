@@ -1,0 +1,26 @@
+# This is a file-level comment
+// This is also a file-level comment
+
+# Single hash name
+GET https://httpbin.org/get
+
+###
+
+## Double hash name
+GET https://httpbin.org/headers
+
+###
+
+# Name with special chars: GET /users (v2)
+GET https://httpbin.org/anything/users
+
+###
+
+# Comment before name
+# Actual Name
+GET https://httpbin.org/user-agent
+
+###
+
+// JS-style comment before request
+GET https://httpbin.org/ip

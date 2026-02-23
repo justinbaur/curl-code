@@ -1,0 +1,41 @@
+### JSON with multiline string values
+POST https://httpbin.org/post
+Content-Type: application/json
+
+{
+  "query": "query { users { id name email } }",
+  "variables": {
+    "limit": 10,
+    "offset": 0
+  }
+}
+
+###
+
+### Large nested body
+POST https://httpbin.org/anything
+Content-Type: application/json
+
+{
+  "operations": [
+    {
+      "type": "create",
+      "data": {
+        "name": "Item 1",
+        "tags": ["a", "b", "c"]
+      }
+    },
+    {
+      "type": "update",
+      "id": 42,
+      "data": {
+        "name": "Updated Item",
+        "tags": ["x", "y"]
+      }
+    }
+  ],
+  "options": {
+    "atomic": true,
+    "returnResults": true
+  }
+}

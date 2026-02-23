@@ -1,0 +1,32 @@
+### Single query param
+GET https://httpbin.org/get?q=hello
+
+###
+
+### Multiple query params
+GET https://httpbin.org/get?page=1&limit=10&sort=name&order=asc
+
+###
+
+### Query param with encoded value
+GET https://httpbin.org/get?q=hello%20world&lang=en
+
+###
+
+### Query param with special characters
+GET https://httpbin.org/get?name=John+Doe&email=john%40example.com
+
+###
+
+### URL with no query params
+GET https://httpbin.org/get
+
+###
+
+### URL with empty query param value
+GET https://httpbin.org/get?q=&page=1
+
+###
+
+### URL with port and query params
+GET https://httpbin.org:8443/anything/items?category=tools&limit=25

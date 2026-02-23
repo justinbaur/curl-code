@@ -1,0 +1,5 @@
+GET https://httpbin.org/get
+Authorization: Bearer token1
+
+GET https://httpbin.org/headers
+Authorization: Bearer token2

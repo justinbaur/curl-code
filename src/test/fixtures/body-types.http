@@ -1,0 +1,74 @@
+### JSON body with explicit Content-Type
+POST https://httpbin.org/post
+Content-Type: application/json
+
+{
+  "string": "value",
+  "number": 42,
+  "boolean": true,
+  "null": null,
+  "array": [1, 2, 3],
+  "nested": {
+    "key": "value"
+  }
+}
+
+###
+
+### JSON array body
+POST https://httpbin.org/post
+Content-Type: application/json
+
+[
+  {"id": 1, "name": "first"},
+  {"id": 2, "name": "second"}
+]
+
+###
+
+### Form-urlencoded body
+POST https://httpbin.org/post
+Content-Type: application/x-www-form-urlencoded
+
+username=john&password=secret&remember=true
+
+###
+
+### Raw text body
+POST https://httpbin.org/post
+Content-Type: text/plain
+
+This is plain text content.
+It can span multiple lines.
+
+###
+
+### XML body
+POST https://httpbin.org/post
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<user>
+  <name>John Doe</name>
+  <email>john@example.com</email>
+</user>
+
+###
+
+### Auto-detected JSON (no Content-Type header)
+POST https://httpbin.org/anything
+
+{"auto": "detected"}
+
+###
+
+### Body that looks like JSON but isn't
+POST https://httpbin.org/anything
+
+{this is not valid json}
+
+###
+
+### Empty body POST
+POST https://httpbin.org/post
+Content-Type: application/json

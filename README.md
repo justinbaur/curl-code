@@ -7,7 +7,7 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 ## Features
 
 - **Full REST Client**: Support for GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS
-- **Collections**: Organize requests into folders and collections
+- **Collections**: Organize requests into collections
 - **Environments**: Global and collection-scoped variables with `{{variable}}` interpolation
 - **Secret Management**: Sensitive values stored securely via VS Code's encrypted storage
 - **History**: Track all your requests automatically
@@ -15,6 +15,21 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 - **Authentication**: Basic Auth, Bearer Token, and API Key support
 - **Response Viewer**: Syntax highlighting, headers, and timing info
 - **Copy as cURL**: Export any request as a cURL command
+
+## Settings
+
+- `curl-code.curlPath`: Path to cURL executable (default: `curl`)
+- `curl-code.timeout`: Request timeout in milliseconds (default: 30000)
+- `curl-code.followRedirects`: Follow HTTP redirects (default: true)
+- `curl-code.verifySSL`: Verify SSL certificates (default: true)
+- `curl-code.saveRequestHistory`: Save request history (default: true)
+- `curl-code.maxHistoryItems`: Maximum history items (default: 50)
+
+## Requirements
+
+- cURL must be installed on your system
+- Most systems have cURL pre-installed
+- Download from: https://curl.se/download.html
 
 ## Quick Start
 
@@ -50,19 +65,12 @@ Collections let you organize and save requests for reuse.
 ### Creating Collections
 
 1. Open the curl-code sidebar
-2. Click the **+** icon in the Collections section
+2. Click the folder **+** icon in the Collections section
 3. Give your collection a name
-
-### Organizing with Folders
-
-- Right-click a collection to create folders inside it
-- Drag and drop requests between folders
-- Nest folders for deeper organization
 
 ### Saving Requests
 
-- After sending a request, click **Save to Collection** in the response panel
-- Or right-click a collection/folder and select **New Request**
+- Click **Save** or **Save As** in the request panel
 
 ### Linked Collections
 
@@ -126,18 +134,3 @@ The request editor supports built-in authentication methods:
 - **API Key**: Key-value pair sent as either a header or a query parameter
 
 Authentication fields support `{{variable}}` interpolation, so you can store credentials in your environment.
-
-## Settings
-
-- `curl-code.curlPath`: Path to cURL executable (default: `curl`)
-- `curl-code.timeout`: Request timeout in milliseconds (default: 30000)
-- `curl-code.followRedirects`: Follow HTTP redirects (default: true)
-- `curl-code.verifySSL`: Verify SSL certificates (default: true)
-- `curl-code.saveRequestHistory`: Save request history (default: true)
-- `curl-code.maxHistoryItems`: Maximum history items (default: 50)
-
-## Requirements
-
-- cURL must be installed on your system
-- Most systems have cURL pre-installed
-- Download from: https://curl.se/download.html

@@ -1,0 +1,36 @@
+
+
+### Leading blank lines before first request
+GET https://httpbin.org/get
+
+###
+
+
+### Multiple blank lines between separator and request
+
+
+POST https://httpbin.org/post
+Content-Type: application/json
+
+{"key": "value"}
+
+###
+
+### Trailing whitespace on request line
+GET https://httpbin.org/anything
+
+###
+
+### Header with extra whitespace in value
+GET https://httpbin.org/headers
+Accept:   application/json
+
+###
+
+### Body with leading/trailing blank lines
+POST https://httpbin.org/post
+Content-Type: application/json
+
+
+{"padded": true}
+

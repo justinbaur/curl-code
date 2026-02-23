@@ -1,17 +1,17 @@
 # Sample HTTP file for testing
 # Variables can be defined like this
-@baseUrl = https://api.example.com
+@baseUrl = https://httpbin.org
 @token = Bearer test-token-12345
 
 ### Get User Profile
-GET {{baseUrl}}/users/123
+GET {{baseUrl}}/get
 Authorization: {{token}}
 Content-Type: application/json
 
 ###
 
 ### Create New User
-POST {{baseUrl}}/users
+POST {{baseUrl}}/post
 Content-Type: application/json
 Authorization: {{token}}
 
@@ -27,7 +27,7 @@ Authorization: {{token}}
 ###
 
 ### Update User Settings
-PATCH {{baseUrl}}/users/123/settings
+PATCH {{baseUrl}}/patch
 Content-Type: application/json
 Authorization: {{token}}
 
@@ -40,5 +40,5 @@ Authorization: {{token}}
 ###
 
 ### Delete User
-DELETE {{baseUrl}}/users/123
+DELETE {{baseUrl}}/delete
 Authorization: {{token}}

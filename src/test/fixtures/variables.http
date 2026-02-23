@@ -1,0 +1,36 @@
+@host = https://httpbin.org
+@version = api
+@token = abc123
+@contentType = application/json
+
+### Variables in URL
+GET {{host}}/anything/{{version}}/users
+
+###
+
+### Variables in headers
+GET {{host}}/headers
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+X-Custom: prefix-{{token}}-suffix
+
+###
+
+### Variables in body
+POST {{host}}/post
+Content-Type: {{contentType}}
+
+{
+  "apiKey": "{{token}}",
+  "endpoint": "{{host}}/anything/callback"
+}
+
+###
+
+### Unresolved variable
+GET {{host}}/anything/{{undefinedVar}}/items
+
+###
+
+### Multiple variables in one line
+GET {{host}}/anything/{{version}}/users?token={{token}}

@@ -1,0 +1,41 @@
+### GET request
+GET https://httpbin.org/get
+
+###
+
+### POST request
+POST https://httpbin.org/post
+Content-Type: application/json
+
+{"action": "create"}
+
+###
+
+### PUT request
+PUT https://httpbin.org/put
+Content-Type: application/json
+
+{"action": "replace"}
+
+###
+
+### PATCH request
+PATCH https://httpbin.org/patch
+Content-Type: application/json
+
+{"action": "update"}
+
+###
+
+### DELETE request
+DELETE https://httpbin.org/delete
+
+###
+
+### HEAD request
+HEAD https://httpbin.org/get
+
+###
+
+### OPTIONS request
+OPTIONS https://httpbin.org/get

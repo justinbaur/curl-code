@@ -1,0 +1,20 @@
+### Lowercase method
+get https://httpbin.org/get
+
+###
+
+### Mixed case method
+Post https://httpbin.org/post
+
+###
+
+### All caps (normal)
+DELETE https://httpbin.org/delete
+
+###
+
+### Mixed case with headers
+pAtCh https://httpbin.org/patch
+content-type: application/json
+
+{"case": "insensitive"}

@@ -1,0 +1,31 @@
+### Request with many headers
+GET https://httpbin.org/headers
+Accept: application/json
+Accept-Language: en-US
+Authorization: Bearer token123
+Cache-Control: no-cache
+Content-Type: application/json
+X-Request-ID: req-001
+X-Custom-Header: custom-value
+User-Agent: curl-code/0.1.0
+
+###
+
+### Duplicate header names
+GET https://httpbin.org/headers
+Accept: application/json
+Accept: text/html
+
+###
+
+### Header with empty value
+GET https://httpbin.org/headers
+X-Empty:
+Accept: application/json
+
+###
+
+### Header value with colons
+GET https://httpbin.org/headers
+X-Timestamp: 2026-02-22T10:30:00Z
+Authorization: Basic dXNlcjpwYXNz

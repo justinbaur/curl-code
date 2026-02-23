@@ -1,0 +1,20 @@
+### With HTTP/1.0
+GET https://httpbin.org/get HTTP/1.0
+
+###
+
+### With HTTP/1.1
+POST https://httpbin.org/post HTTP/1.1
+Content-Type: application/json
+
+{"version": "1.1"}
+
+###
+
+### With HTTP/2
+GET https://httpbin.org/anything HTTP/2
+
+###
+
+### Without HTTP version (default)
+GET https://httpbin.org/headers
