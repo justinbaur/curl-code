@@ -161,7 +161,7 @@ describe('CurlExecutor Integration', () => {
 			// Verify spawn was called with correct arguments
 			expect(spawnStub.calledOnce).to.be.true;
 			const args = spawnStub.firstCall.args[1] as string[];
-			expect(args).to.include('-H');
+			expect(args).to.include('--header');
 			expect(args).to.include('Authorization: Bearer token123');
 			expect(args).to.include('X-Custom: test');
 		});
@@ -214,7 +214,7 @@ describe('CurlExecutor Integration', () => {
 			await responsePromise;
 
 			const args = spawnStub.firstCall.args[1] as string[];
-			expect(args).to.include('-u');
+			expect(args).to.include('--user');
 			expect(args).to.include('testuser:testpass');
 		});
 
@@ -237,7 +237,7 @@ describe('CurlExecutor Integration', () => {
 			await responsePromise;
 
 			const args = spawnStub.firstCall.args[1] as string[];
-			expect(args).to.include('-H');
+			expect(args).to.include('--header');
 			expect(args).to.include('Authorization: Bearer test-token-12345');
 		});
 
@@ -260,7 +260,7 @@ describe('CurlExecutor Integration', () => {
 			await responsePromise;
 
 			const args = spawnStub.firstCall.args[1] as string[];
-			expect(args).to.include('-H');
+			expect(args).to.include('--header');
 			expect(args).to.include('X-API-Key: test-api-key-67890');
 		});
 
@@ -417,7 +417,7 @@ describe('CurlExecutor Integration', () => {
 			const command = executor.buildCurlCommand(request);
 
 			expect(command).to.include('curl');
-			expect(command).to.include('-X GET');
+			expect(command).to.include('--request GET');
 			expect(command).to.include('https://api.example.com/users');
 		});
 
@@ -434,8 +434,8 @@ describe('CurlExecutor Integration', () => {
 			const command = executor.buildCurlCommand(request);
 
 			expect(command).to.include('curl');
-			expect(command).to.include('-X POST');
-			expect(command).to.include('-d');
+			expect(command).to.include('--request POST');
+			expect(command).to.include('--data');
 			expect(command).to.include('{"name":"John"}');
 		});
 
@@ -448,7 +448,7 @@ describe('CurlExecutor Integration', () => {
 
 			const command = executor.buildCurlCommand(request);
 
-			expect(command).to.include('-H');
+			expect(command).to.include('--header');
 			expect(command).to.include('Content-Type: application/json');
 		});
 	});

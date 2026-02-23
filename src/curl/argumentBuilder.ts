@@ -18,7 +18,7 @@ export class ArgumentBuilder {
         const args: string[] = [];
 
         // Method
-        args.push('-X', request.method);
+        args.push('--request', request.method);
 
         // URL with query params
         const url = this.buildUrl(request);
@@ -26,7 +26,7 @@ export class ArgumentBuilder {
 
         // Headers
         for (const header of request.headers.filter(h => h.enabled)) {
-            args.push('-H', `${header.key}: ${header.value}`);
+            args.push('--header', `${header.key}: ${header.value}`);
         }
 
         // Authentication
@@ -37,12 +37,12 @@ export class ArgumentBuilder {
 
         // Follow redirects
         if (options.followRedirects) {
-            args.push('-L');
+            args.push('--location');
         }
 
         // Skip SSL verification
         if (!options.verifySSL) {
-            args.push('-k');
+            args.push('--insecure');
         }
 
         // Timeout (convert ms to seconds)
@@ -83,18 +83,18 @@ export class ArgumentBuilder {
         switch (request.auth.type) {
             case 'basic':
                 if (request.auth.username && request.auth.password) {
-                    args.push('-u', `${request.auth.username}:${request.auth.password}`);
+                    args.push('--user', `${request.auth.username}:${request.auth.password}`);
                 }
                 break;
             case 'bearer':
                 if (request.auth.token) {
-                    args.push('-H', `Authorization: Bearer ${request.auth.token}`);
+                    args.push('--header', `Authorization: Bearer ${request.auth.token}`);
                 }
                 break;
             case 'api-key':
                 if (request.auth.apiKeyName && request.auth.apiKeyValue) {
                     if (request.auth.apiKeyLocation === 'header') {
-                        args.push('-H', `${request.auth.apiKeyName}: ${request.auth.apiKeyValue}`);
+                        args.push('--header', `${request.auth.apiKeyName}: ${request.auth.apiKeyValue}`);
                     }
                     // Query params are handled in buildUrl if needed
                 }
@@ -114,10 +114,10 @@ export class ArgumentBuilder {
             case 'json':
                 // Add Content-Type header if not already present
                 if (!request.headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type')) {
-                    args.push('-H', 'Content-Type: application/json');
+                    args.push('--header', 'Content-Type: application/json');
                 }
                 if (request.body.content) {
-                    args.push('-d', request.body.content);
+                    args.push('--data', request.body.content);
                 }
                 break;
 
@@ -125,9 +125,9 @@ export class ArgumentBuilder {
                 if (request.body.formData) {
                     for (const item of request.body.formData.filter(f => f.enabled)) {
                         if (item.type === 'file') {
-                            args.push('-F', `${item.key}=@${item.value}`);
+                            args.push('--form', `${item.key}=@${item.value}`);
                         } else {
-                            args.push('-F', `${item.key}=${item.value}`);
+                            args.push('--form', `${item.key}=${item.value}`);
                         }
                     }
                 }
@@ -135,17 +135,17 @@ export class ArgumentBuilder {
 
             case 'x-www-form-urlencoded':
                 if (!request.headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type')) {
-                    args.push('-H', 'Content-Type: application/x-www-form-urlencoded');
+                    args.push('--header', 'Content-Type: application/x-www-form-urlencoded');
                 }
                 if (request.body.content) {
-                    args.push('-d', request.body.content);
+                    args.push('--data', request.body.content);
                 }
                 break;
 
             case 'raw':
             case 'binary':
                 if (request.body.content) {
-                    args.push('-d', request.body.content);
+                    args.push('--data', request.body.content);
                 }
                 break;
         }
@@ -156,7 +156,8 @@ export class ArgumentBuilder {
      */
     buildCommand(request: HttpRequest, options: CurlOptions): string {
         const args = this.build(request, options);
-        return `curl ${args.map(arg => this.escapeArg(arg)).join(' ')}`;
+        const binary = process.platform === 'win32' ? 'curl.exe' : 'curl';
+        return `${binary} ${args.map(arg => this.escapeArg(arg)).join(' ')}`;
     }
 
     /**

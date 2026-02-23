@@ -22,7 +22,7 @@ describe('ArgumentBuilder', () => {
 			const args = builder.build(request, options);
 
 			// Assert
-			expect(args).to.include('-X');
+			expect(args).to.include('--request');
 			expect(args).to.include('GET');
 			expect(args).to.include('https://api.example.com/users');
 			expect(args).to.include('--max-time');
@@ -39,11 +39,11 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.include('-X');
+			expect(args).to.include('--request');
 			expect(args).to.include('POST');
-			expect(args).to.include('-H');
+			expect(args).to.include('--header');
 			expect(args).to.include('Content-Type: application/json');
-			expect(args).to.include('-d');
+			expect(args).to.include('--data');
 			expect(args).to.include('{"name":"John"}');
 		});
 
@@ -107,7 +107,7 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.include('-u');
+			expect(args).to.include('--user');
 			expect(args).to.include('admin:secret');
 		});
 
@@ -119,7 +119,7 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.include('-H');
+			expect(args).to.include('--header');
 			expect(args).to.include('Authorization: Bearer my-secret-token');
 		});
 
@@ -136,7 +136,7 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.include('-H');
+			expect(args).to.include('--header');
 			expect(args).to.include('X-API-Key: key123');
 		});
 
@@ -146,7 +146,7 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.include('-L');
+			expect(args).to.include('--location');
 		});
 
 		it('should add skip SSL verification flag', () => {
@@ -155,7 +155,7 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.include('-k');
+			expect(args).to.include('--insecure');
 		});
 
 		it('should handle form-data body', () => {
@@ -174,7 +174,7 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.include('-F');
+			expect(args).to.include('--form');
 			expect(args).to.include('name=John');
 			expect(args).to.include('avatar=@/path/to/file.jpg');
 		});
@@ -191,9 +191,9 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.include('-H');
+			expect(args).to.include('--header');
 			expect(args).to.include('Content-Type: application/x-www-form-urlencoded');
-			expect(args).to.include('-d');
+			expect(args).to.include('--data');
 			expect(args).to.include('name=John&age=30');
 		});
 
@@ -216,7 +216,7 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			expect(args).to.not.include('-d');
+			expect(args).to.not.include('--data');
 		});
 
 		it('should skip disabled query parameters', () => {
@@ -248,7 +248,7 @@ describe('ArgumentBuilder', () => {
 			const command = builder.buildCommand(request, options);
 
 			expect(command).to.include('curl');
-			expect(command).to.include('-X');
+			expect(command).to.include('--request');
 			expect(command).to.include('GET');
 			expect(command).to.include('https://api.example.com/users');
 		});
