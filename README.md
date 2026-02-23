@@ -4,6 +4,8 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 
 > This extension is not affiliated with or endorsed by the cURL project or Daniel Stenberg.
 
+![showcase example](curl-code.png)
+
 ## Features
 
 - **Full REST Client**: Support for GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS
