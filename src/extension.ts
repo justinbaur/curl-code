@@ -13,10 +13,12 @@ import { CollectionService } from './services/CollectionService';
 import { HistoryService } from './services/HistoryService';
 import { EnvironmentService } from './services/EnvironmentService';
 import { CurlExecutor } from './curl/executor';
+import { Logger } from './utils/Logger';
 import { generateId } from './types/request';
 
 export async function activate(context: vscode.ExtensionContext) {
-    console.log('curl-code extension is now active');
+    const logger = Logger.getInstance();
+    logger.info('curl-code extension is now active');
 
     // Initialize services
     const collectionService = new CollectionService(context);
@@ -110,13 +112,13 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
 
         vscode.commands.registerCommand('curl-code.sendRequest', async (item) => {
-            if (item?.request) { // TODO: fix this
+            if (item?.request) {
                 await requestPanelManager.sendRequest(item.request);
             }
         }),
 
         vscode.commands.registerCommand('curl-code.openRequestBuilder', (request) => {
-            requestPanelManager.openRequest(request); // TODO: What does this add?
+            requestPanelManager.openRequest(request);
         }),
 
         vscode.commands.registerCommand('curl-code.copyAsCurl', async (item) => {
@@ -709,5 +711,5 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    console.log('curl-code extension is now deactivated');
+    Logger.getInstance().info('curl-code extension is now deactivated');
 }
