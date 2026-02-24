@@ -52,8 +52,8 @@ jobs:
       run: |
         cd webview-ui
         npm install
-    - name: Compile extension
-      run: npm run compile
+    - name: Build All
+      run: npm run build:all
     - name: Compile tests
       run: npm run compile-tests
     - name: Run linter
