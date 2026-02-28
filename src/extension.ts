@@ -256,7 +256,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
             const name = await vscode.window.showInputBox({
                 prompt: 'Enter variable name',
-                placeHolder: 'api_key'
+                placeHolder: 'url'
             });
             if (!name) return;
 
@@ -283,7 +283,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (globalEnv) {
                 // It's a global environment
                 await environmentService.addVariable(envId, name, value, varType);
-                vscode.window.showInformationMessage(`Variable "${name}" added`);
+                vscode.window.showInformationMessage(`Variable "${name}" updated`);
             } else {
                 // It's a collection environment
                 const collections = collectionService.getCollections();
@@ -293,17 +293,24 @@ export async function activate(context: vscode.ExtensionContext) {
                     if (collection.environments) {
                         const env = collection.environments.find(e => e.id === envId);
                         if (env) {
-                            // Add the new variable
-                            env.variables.push({
-                                key: name,
-                                value: value,
-                                type: varType,
-                                enabled: true
-                            });
+                            // Update existing variable or add new one
+                            const existing = env.variables.find(v => v.key === name);
+                            if (existing) {
+                                existing.value = value;
+                                existing.type = varType;
+                                existing.enabled = true;
+                            } else {
+                                env.variables.push({
+                                    key: name,
+                                    value: value,
+                                    type: varType,
+                                    enabled: true
+                                });
+                            }
 
                             // Save the updated collection
                             await collectionService.updateCollection(collection.id, collection);
-                            vscode.window.showInformationMessage(`Variable "${name}" added`);
+                            vscode.window.showInformationMessage(`Variable "${name}" updated`);
                             found = true;
                             break;
                         }
