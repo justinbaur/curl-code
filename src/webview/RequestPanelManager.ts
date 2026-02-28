@@ -384,7 +384,8 @@ export class RequestPanelManager {
         });
         if (!selectedCollection) { return; }
 
-        const collection = collections.find(c => c.id === selectedCollection.id)!;
+        const collection = collections.find(c => c.id === selectedCollection.id);
+        if (!collection) { return; }
         const flatFolders = this.flattenFolders(collection.folders);
 
         let folderId: string | undefined;
