@@ -379,6 +379,36 @@
         {
           "command": "curl-code.deleteEnvironmentVariable",
           "when": "view == curl-code.environments && viewItem == variable"
+        },
+        {
+          "command": "curl-code.newEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == environment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.newEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == activeEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.newEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == globalEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.newEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == globalActiveEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.newEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == collectionEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.newEnvironmentVariable",
+          "when": "view == curl-code.environments && viewItem == collectionActiveEnvironment",
+          "group": "inline"
         }
       ],
       "editor/title": [
