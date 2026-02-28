@@ -92,8 +92,15 @@ describe('ArgumentBuilder', () => {
 
 			const args = builder.build(request, options);
 
-			// Find the URL argument
-			const urlArg = args.find(arg => arg.includes('https://api.example.com/users'));
+			// Find the URL argument by parsing and checking origin and pathname
+			const urlArg = args.find(arg => {
+				try {
+					const parsed = new URL(arg);
+					return parsed.origin === 'https://api.example.com' && parsed.pathname === '/users';
+				} catch {
+					return false;
+				}
+			});
 			expect(urlArg).to.exist;
 			expect(urlArg).to.include('?page=1');
 			expect(urlArg).to.include('limit=10');

@@ -166,9 +166,9 @@ export class ArgumentBuilder {
     private escapeArg(arg: string): string {
         if (process.platform === 'win32') {
             // Windows CMD: wrap in double quotes if the argument contains spaces or quotes.
-            // Only " needs escaping inside a double-quoted string (with backslash).
+            // Escape backslashes and double quotes inside the quoted string to preserve them.
             if (/[\s"^&|<>]/.test(arg)) {
-                return `"${arg.replace(/"/g, '\\"')}"`;
+                return `"${arg.replace(/["\\]/g, match => `\\${match}`)}"`;
             }
             return arg;
         }
