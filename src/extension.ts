@@ -79,16 +79,33 @@ export async function activate(context: vscode.ExtensionContext) {
         if (activeEnv) {
             statusBarItem.text = `$(globe) ${activeEnv.name}`;
             statusBarItem.show();
-        } else {
-            statusBarItem.text = '$(globe) No Environment';
-            statusBarItem.show();
+            return;
         }
+
+        // Check for active collection environments
+        const collections = collectionService.getCollections();
+        for (const collection of collections) {
+            if (collection.environments) {
+                const activeCollectionEnv = collection.environments.find(e => e.isActive);
+                if (activeCollectionEnv) {
+                    statusBarItem.text = `$(globe) ${activeCollectionEnv.name}`;
+                    statusBarItem.show();
+                    return;
+                }
+            }
+        }
+
+        statusBarItem.text = '$(globe) No Environment';
+        statusBarItem.show();
     };
 
     updateStatusBar();
 
     // Listen for service changes and refresh tree views
-    collectionService.onChange(() => collectionsProvider.refresh());
+    collectionService.onChange(() => {
+        collectionsProvider.refresh();
+        updateStatusBar();
+    });
     historyService.onChange(() => historyProvider.refresh());
     environmentService.onChange(() => {
         environmentProvider.refresh();
