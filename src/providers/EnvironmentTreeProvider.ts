@@ -7,9 +7,10 @@ import type { Environment, EnvironmentVariable } from '../types/collection';
 import type { EnvironmentService } from '../services/EnvironmentService';
 import type { CollectionService } from '../services/CollectionService';
 
-// Extended variable with environment ID for tree operations
+// Extended variable with environment ID and index for tree operations
 interface VariableTreeItem extends EnvironmentVariable {
     environmentId: string;
+    index: number;
 }
 
 type TreeItemData =
@@ -101,11 +102,12 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
             const env = element.environment;
             return env.variables
                 .filter(v => v.enabled)
-                .map(variable => ({
+                .map((variable, index) => ({
                     type: 'variable' as const,
                     variable: {
                         ...variable,
-                        environmentId: env.id
+                        environmentId: env.id,
+                        index
                     }
                 }));
         }
@@ -193,8 +195,8 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
             ? `${variable.key} (secret)`
             : `${variable.key} = ${variable.value}`;
 
-        // Store environment ID and variable key for command handlers
-        item.id = `${variable.environmentId}:${variable.key}`;
+        // Store environment ID, variable key, and index for unique tree item IDs
+        item.id = `${variable.environmentId}:${variable.key}:${variable.index}`;
 
         return item;
     }

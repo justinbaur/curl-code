@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Addressed CodeQL security reports
+- Active environment not showing up in the status bar at the bottom
+- Error creating an environment variable with the same name/key. Now it updates the variable instead.
+- Incorrect shortcut usage in the README.md
+- Missing new environment variable on environment tree item
+- Dependency vulnerabilities
 
 ## [v0.1.0]
 

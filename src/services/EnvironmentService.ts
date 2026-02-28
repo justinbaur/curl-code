@@ -126,6 +126,17 @@ export class EnvironmentService {
         const env = this.getEnvironment(environmentId);
         if (!env) return undefined;
 
+        // Update existing variable if key already exists
+        const existing = env.variables.find(v => v.key === key);
+        if (existing) {
+            existing.value = value;
+            existing.type = type;
+            existing.enabled = true;
+            await this.saveEnvironments();
+            this.onChangeEmitter.fire();
+            return existing;
+        }
+
         const variable: EnvironmentVariable = {
             key,
             value,
