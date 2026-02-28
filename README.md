@@ -36,7 +36,7 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 ## Quick Start
 
 1. Click the curl-code icon in the Activity Bar
-2. Click "New Request" or press `Ctrl+Shift+N`
+2. Click "New Request"
 3. Enter a URL and click "Send" or press `Enter`
 
 ## Using .http Files
