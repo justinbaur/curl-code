@@ -229,6 +229,28 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
 
+        vscode.commands.registerCommand('curl-code.deleteRequest', async (item) => {
+            if (!item || !item.id || !item.name) {
+                vscode.window.showErrorMessage('Please select a request to delete');
+                return;
+            }
+
+            const confirm = await vscode.window.showWarningMessage(
+                `Delete request "${item.name}"?`,
+                { modal: true },
+                'Delete'
+            );
+
+            if (confirm === 'Delete') {
+                const deleted = await collectionService.deleteRequest(item.id, item.collectionId, item.folderId);
+                if (deleted) {
+                    vscode.window.showInformationMessage(`Request "${item.name}" deleted`);
+                } else {
+                    vscode.window.showErrorMessage('Failed to delete request');
+                }
+            }
+        }),
+
         vscode.commands.registerCommand('curl-code.refreshCollections', () => {
             collectionsProvider.refresh();
         }),
