@@ -8,13 +8,14 @@ import { TabPanel, type Tab } from '../common/TabPanel';
 import { ResponseInfo } from './ResponseInfo';
 import { ResponseBody } from './ResponseBody';
 import { ResponseHeaders } from './ResponseHeaders';
+import { ResponseLog } from './ResponseLog';
 
 interface ResponseViewerProps {
   response: HttpResponse | null;
   error: string | null;
 }
 
-type TabId = 'body' | 'headers' | 'curl';
+type TabId = 'body' | 'headers' | 'curl' | 'log';
 
 export function ResponseViewer({ response, error }: ResponseViewerProps) {
   const [activeTab, setActiveTab] = useState<TabId>('body');
@@ -48,6 +49,7 @@ export function ResponseViewer({ response, error }: ResponseViewerProps) {
     { id: 'body', label: 'Body' },
     { id: 'headers', label: 'Headers', badge: Object.keys(response.headers).length },
     { id: 'curl', label: 'cURL' },
+    { id: 'log', label: 'Log', badge: response.debugLog ? 1 : undefined },
   ];
 
   return (
@@ -70,6 +72,7 @@ export function ResponseViewer({ response, error }: ResponseViewerProps) {
             <pre>{response.curlCommand}</pre>
           </div>
         )}
+        {activeTab === 'log' && <ResponseLog log={response.debugLog} />}
       </div>
     </div>
   );

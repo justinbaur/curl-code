@@ -264,6 +264,61 @@ describe('CurlExecutor Integration', () => {
 			expect(args).to.include('X-API-Key: test-api-key-67890');
 		});
 
+		it('should pass advanced flags to cURL process', async () => {
+			const { createDefaultAdvancedOptions } = await import('../../../types/request');
+			const request = createMockRequest({
+				method: 'GET',
+				url: 'https://api.example.com/test',
+				advanced: {
+					...createDefaultAdvancedOptions(),
+					httpVersion: 'http2',
+					compressed: true,
+					proxy: 'http://proxy:8080',
+					retry: '3'
+				}
+			});
+
+			const responsePromise = executor.execute(request);
+
+			const curlOutput =
+				'HTTP/1.1 200 OK\r\n\r\n{}' +
+				'\n---CURL_INFO---\n200\n0.1\n2';
+
+			mockProcess.stdout.emit('data', Buffer.from(curlOutput));
+			mockProcess.emit('close', 0);
+
+			await responsePromise;
+
+			const args = spawnStub.firstCall.args[1] as string[];
+			expect(args).to.include('--http2');
+			expect(args).to.include('--compressed');
+			expect(args).to.include('--proxy');
+			expect(args).to.include('http://proxy:8080');
+			expect(args).to.include('--retry');
+			expect(args).to.include('3');
+		});
+
+		it('should handle request without advanced options (backward compat)', async () => {
+			const request = createMockRequest({
+				method: 'GET',
+				url: 'https://api.example.com/test'
+			});
+			// Ensure advanced is undefined
+			delete (request as any).advanced;
+
+			const responsePromise = executor.execute(request);
+
+			const curlOutput =
+				'HTTP/1.1 200 OK\r\n\r\n{}' +
+				'\n---CURL_INFO---\n200\n0.1\n2';
+
+			mockProcess.stdout.emit('data', Buffer.from(curlOutput));
+			mockProcess.emit('close', 0);
+
+			const response = await responsePromise;
+			expect(response.status).to.equal(200);
+		});
+
 		it('should reject on cURL error (exit code 6 - could not resolve host)', async () => {
 			const request = createMockRequest({
 				url: 'https://nonexistent.invalid'
@@ -474,6 +529,44 @@ describe('CurlExecutor Integration', () => {
 			const args = spawnStub.firstCall.args[1] as string[];
 			const url = args.find(arg => arg.includes('{{host}}'));
 			expect(url).to.exist;
+		});
+
+		it('should interpolate advanced fields with environment service', async () => {
+			const mockEnvService = {
+				resolveVariables: sinon.stub()
+			};
+			mockEnvService.resolveVariables
+				.withArgs('{{proxy_url}}')
+				.returns('http://proxy.corp:8080');
+			mockEnvService.resolveVariables.callsFake((val: string) => val);
+
+			const executorWithEnv = new CurlExecutor(mockEnvService as any);
+
+			const { createDefaultAdvancedOptions } = await import('../../../types/request');
+			const request = createMockRequest({
+				advanced: {
+					...createDefaultAdvancedOptions(),
+					proxy: '{{proxy_url}}',
+				}
+			});
+
+			const curlOutput =
+				'HTTP/1.1 200 OK\r\n\r\n{}' +
+				'\n---CURL_INFO---\n200\n0.1\n2';
+
+			const mockProcess2 = new MockChildProcess();
+			spawnStub.returns(mockProcess2 as any);
+
+			const responsePromise = executorWithEnv.execute(request);
+
+			mockProcess2.stdout.emit('data', Buffer.from(curlOutput));
+			mockProcess2.emit('close', 0);
+
+			await responsePromise;
+
+			const args = spawnStub.firstCall.args[1] as string[];
+			expect(args).to.include('--proxy');
+			expect(args).to.include('http://proxy.corp:8080');
 		});
 
 		it('should interpolate with environment service', async () => {

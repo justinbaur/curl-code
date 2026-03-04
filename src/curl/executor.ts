@@ -82,6 +82,9 @@ export class CurlExecutor {
                             endTime - startTime,
                             curlCommand
                         );
+                        if (stderr.trim()) {
+                            response.debugLog = stderr;
+                        }
                         resolve(response);
                     } catch (error) {
                         reject(new Error(`Failed to parse response: ${error}`));
@@ -215,7 +218,33 @@ export class CurlExecutor {
                 password: request.auth.password ? resolveVar(request.auth.password) : undefined,
                 token: request.auth.token ? resolveVar(request.auth.token) : undefined,
                 apiKeyValue: request.auth.apiKeyValue ? resolveVar(request.auth.apiKeyValue) : undefined
-            }
+            },
+            advanced: request.advanced ? {
+                ...request.advanced,
+                connectTimeout: resolveVar(request.advanced.connectTimeout),
+                keepaliveTime: resolveVar(request.advanced.keepaliveTime),
+                cookie: resolveVar(request.advanced.cookie),
+                cookieJar: resolveVar(request.advanced.cookieJar),
+                proxy: resolveVar(request.advanced.proxy),
+                proxyUser: resolveVar(request.advanced.proxyUser),
+                noproxy: resolveVar(request.advanced.noproxy),
+                caCert: resolveVar(request.advanced.caCert),
+                clientCert: resolveVar(request.advanced.clientCert),
+                clientKey: resolveVar(request.advanced.clientKey),
+                maxRedirs: resolveVar(request.advanced.maxRedirs),
+                retry: resolveVar(request.advanced.retry),
+                retryDelay: resolveVar(request.advanced.retryDelay),
+                retryMaxTime: resolveVar(request.advanced.retryMaxTime),
+                awsSigv4: resolveVar(request.advanced.awsSigv4),
+                oauth2Bearer: resolveVar(request.advanced.oauth2Bearer),
+                resolve: resolveVar(request.advanced.resolve),
+                connectTo: resolveVar(request.advanced.connectTo),
+                limitRate: resolveVar(request.advanced.limitRate),
+                maxFilesize: resolveVar(request.advanced.maxFilesize),
+                userAgent: resolveVar(request.advanced.userAgent),
+                referer: resolveVar(request.advanced.referer),
+                rawFlags: resolveVar(request.advanced.rawFlags),
+            } : undefined,
         };
 
         return interpolated;

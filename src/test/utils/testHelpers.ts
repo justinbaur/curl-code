@@ -23,6 +23,7 @@ export function createMockRequest(overrides: Partial<HttpRequest> = {}): HttpReq
 		queryParams: overrides.queryParams || [],
 		body: overrides.body || { type: 'none', content: '' },
 		auth: overrides.auth || { type: 'none' },
+		advanced: overrides.advanced,
 		collectionId: overrides.collectionId,
 		folderId: overrides.folderId,
 		createdAt: overrides.createdAt || now,

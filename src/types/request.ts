@@ -39,6 +39,114 @@ export interface HttpBody {
     formData?: FormDataItem[];
 }
 
+export type HttpVersion = 'default' | 'http1.0' | 'http1.1' | 'http2' | 'http2-prior-knowledge' | 'http3' | 'http3-only';
+export type TlsVersion = 'default' | 'tlsv1.0' | 'tlsv1.1' | 'tlsv1.2' | 'tlsv1.3';
+
+export interface AdvancedOptions {
+    // HTTP Version
+    httpVersion: HttpVersion;
+
+    // Connection & Timeout
+    connectTimeout: string;
+    keepaliveTime: string;
+    noKeepalive: boolean;
+    tcpNodelay: boolean;
+
+    // Cookies
+    cookie: string;
+    cookieJar: string;
+
+    // Proxy
+    proxy: string;
+    proxyUser: string;
+    noproxy: string;
+
+    // SSL/TLS
+    tlsVersion: TlsVersion;
+    caCert: string;
+    clientCert: string;
+    clientKey: string;
+
+    // Redirects
+    maxRedirs: string;
+    locationTrusted: boolean;
+    post301: boolean;
+    post302: boolean;
+    post303: boolean;
+
+    // Retry
+    retry: string;
+    retryDelay: string;
+    retryMaxTime: string;
+
+    // Compression & Output
+    compressed: boolean;
+    verbose: boolean;
+
+    // Auth extensions
+    digest: boolean;
+    ntlm: boolean;
+    negotiate: boolean;
+    awsSigv4: string;
+    oauth2Bearer: string;
+
+    // DNS / Resolution
+    resolve: string;
+    connectTo: string;
+
+    // Rate Limiting
+    limitRate: string;
+    maxFilesize: string;
+
+    // Other shortcuts
+    userAgent: string;
+    referer: string;
+
+    // Raw flags textarea
+    rawFlags: string;
+}
+
+export function createDefaultAdvancedOptions(): AdvancedOptions {
+    return {
+        httpVersion: 'default',
+        connectTimeout: '',
+        keepaliveTime: '',
+        noKeepalive: false,
+        tcpNodelay: false,
+        cookie: '',
+        cookieJar: '',
+        proxy: '',
+        proxyUser: '',
+        noproxy: '',
+        tlsVersion: 'default',
+        caCert: '',
+        clientCert: '',
+        clientKey: '',
+        maxRedirs: '',
+        locationTrusted: false,
+        post301: false,
+        post302: false,
+        post303: false,
+        retry: '',
+        retryDelay: '',
+        retryMaxTime: '',
+        compressed: false,
+        verbose: false,
+        digest: false,
+        ntlm: false,
+        negotiate: false,
+        awsSigv4: '',
+        oauth2Bearer: '',
+        resolve: '',
+        connectTo: '',
+        limitRate: '',
+        maxFilesize: '',
+        userAgent: '',
+        referer: '',
+        rawFlags: '',
+    };
+}
+
 export interface HttpRequest {
     id: string;
     name: string;
@@ -48,6 +156,7 @@ export interface HttpRequest {
     queryParams: QueryParam[];
     body: HttpBody;
     auth: HttpAuth;
+    advanced?: AdvancedOptions;
     collectionId?: string;
     folderId?: string;
     createdAt: number;
@@ -63,6 +172,7 @@ export interface HttpResponse {
     size: number;
     time: number;
     curlCommand: string;
+    debugLog?: string;
 }
 
 export interface RequestExecution {
@@ -94,6 +204,7 @@ export function createEmptyRequest(): HttpRequest {
         queryParams: [],
         body: { type: 'none', content: '' },
         auth: { type: 'none' },
+        advanced: createDefaultAdvancedOptions(),
         createdAt: Date.now(),
         updatedAt: Date.now()
     };
@@ -124,6 +235,9 @@ export function normalizeRequest(request: Partial<HttpRequest>): HttpRequest {
             formData: request.body?.formData || []
         },
         auth: request.auth || { type: 'none' },
+        advanced: request.advanced
+            ? { ...createDefaultAdvancedOptions(), ...request.advanced }
+            : createDefaultAdvancedOptions(),
         collectionId: request.collectionId,
         folderId: request.folderId,
         createdAt: request.createdAt || Date.now(),

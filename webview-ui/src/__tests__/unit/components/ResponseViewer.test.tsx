@@ -89,6 +89,7 @@ describe('ResponseViewer', () => {
 			expect(screen.getByRole('button', { name: /body/i })).toBeInTheDocument();
 			expect(screen.getByRole('button', { name: /headers/i })).toBeInTheDocument();
 			expect(screen.getByRole('button', { name: /curl/i })).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: /log/i })).toBeInTheDocument();
 		});
 
 		it('should show headers count badge', () => {
@@ -172,6 +173,16 @@ describe('ResponseViewer', () => {
 			expect(screen.getByText(/curl -X POST/)).toBeInTheDocument();
 		});
 
+		it('should switch to Log tab when clicked', async () => {
+			const user = userEvent.setup();
+			render(<ResponseViewer response={mockResponse} error={null} />);
+
+			const logTab = screen.getByRole('button', { name: /log/i });
+			await user.click(logTab);
+
+			expect(logTab).toHaveClass('active');
+		});
+
 		it('should switch between all tabs', async () => {
 			const user = userEvent.setup();
 			render(<ResponseViewer response={mockResponse} error={null} />);
@@ -179,6 +190,7 @@ describe('ResponseViewer', () => {
 			const bodyTab = screen.getByRole('button', { name: /body/i });
 			const headersTab = screen.getByRole('button', { name: /headers/i });
 			const curlTab = screen.getByRole('button', { name: /curl/i });
+			const logTab = screen.getByRole('button', { name: /log/i });
 
 			// Start at Body (default)
 			expect(bodyTab).toHaveClass('active');
@@ -193,10 +205,15 @@ describe('ResponseViewer', () => {
 			expect(curlTab).toHaveClass('active');
 			expect(headersTab).not.toHaveClass('active');
 
+			// Switch to Log
+			await user.click(logTab);
+			expect(logTab).toHaveClass('active');
+			expect(curlTab).not.toHaveClass('active');
+
 			// Switch back to Body
 			await user.click(bodyTab);
 			expect(bodyTab).toHaveClass('active');
-			expect(curlTab).not.toHaveClass('active');
+			expect(logTab).not.toHaveClass('active');
 		});
 
 		it('should maintain tab state when switching between tabs', async () => {
@@ -385,6 +402,86 @@ describe('ResponseViewer', () => {
 		});
 	});
 
+	describe('log tab', () => {
+		it('should show Log tab badge when debugLog is present', () => {
+			const responseWithLog: HttpResponse = {
+				status: 200,
+				statusText: 'OK',
+				headers: {},
+				body: '{}',
+				contentType: 'application/json',
+				size: 2,
+				time: 100,
+				curlCommand: 'curl ...',
+				debugLog: '* Connected to example.com\n> GET / HTTP/2\n< HTTP/2 200'
+			};
+
+			render(<ResponseViewer response={responseWithLog} error={null} />);
+
+			const logTab = screen.getByRole('button', { name: /log/i });
+			expect(logTab.textContent).toContain('1');
+		});
+
+		it('should not show Log tab badge when no debugLog', () => {
+			const responseNoLog: HttpResponse = {
+				status: 200,
+				statusText: 'OK',
+				headers: {},
+				body: '{}',
+				contentType: 'application/json',
+				size: 2,
+				time: 100,
+				curlCommand: 'curl ...'
+			};
+
+			render(<ResponseViewer response={responseNoLog} error={null} />);
+
+			const logTab = screen.getByRole('button', { name: /log/i });
+			expect(logTab.textContent).toBe('Log');
+		});
+
+		it('should show empty state when switching to Log tab without debugLog', async () => {
+			const user = userEvent.setup();
+			const responseNoLog: HttpResponse = {
+				status: 200,
+				statusText: 'OK',
+				headers: {},
+				body: '{}',
+				contentType: 'application/json',
+				size: 2,
+				time: 100,
+				curlCommand: 'curl ...'
+			};
+
+			render(<ResponseViewer response={responseNoLog} error={null} />);
+
+			await user.click(screen.getByRole('button', { name: /log/i }));
+
+			expect(screen.getByText(/no debug output available/i)).toBeInTheDocument();
+		});
+
+		it('should show log content when switching to Log tab with debugLog', async () => {
+			const user = userEvent.setup();
+			const responseWithLog: HttpResponse = {
+				status: 200,
+				statusText: 'OK',
+				headers: {},
+				body: '{}',
+				contentType: 'application/json',
+				size: 2,
+				time: 100,
+				curlCommand: 'curl ...',
+				debugLog: '* Connected to example.com'
+			};
+
+			render(<ResponseViewer response={responseWithLog} error={null} />);
+
+			await user.click(screen.getByRole('button', { name: /log/i }));
+
+			expect(screen.getByText(/Connected to example.com/)).toBeInTheDocument();
+		});
+	});
+
 	describe('accessibility', () => {
 		it('should have proper ARIA roles for tabs', () => {
 			const mockResponse: HttpResponse = {
@@ -401,7 +498,7 @@ describe('ResponseViewer', () => {
 			render(<ResponseViewer response={mockResponse} error={null} />);
 
 			const tabs = screen.getAllByRole('button');
-			expect(tabs).toHaveLength(3);
+			expect(tabs).toHaveLength(4);
 
 			tabs.forEach(tab => {
 				expect(tab).toHaveClass('tab-button');

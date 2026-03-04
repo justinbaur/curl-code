@@ -3,7 +3,8 @@
  */
 
 import { useState } from 'react';
-import type { HttpRequest } from '../../vscode';
+import type { HttpRequest, AdvancedOptions } from '../../vscode';
+import { createDefaultAdvancedOptions } from '../../vscode';
 import { MethodSelector } from './MethodSelector';
 import { UrlBar } from './UrlBar';
 import { TabPanel, type Tab } from '../common/TabPanel';
@@ -11,6 +12,7 @@ import { QueryParamsEditor } from './QueryParamsEditor';
 import { HeadersEditor } from './HeadersEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthEditor } from './AuthEditor';
+import { AdvancedEditor } from './AdvancedEditor';
 
 interface RequestBuilderProps {
   request: HttpRequest;
@@ -23,7 +25,33 @@ interface RequestBuilderProps {
   isDirty: boolean;
 }
 
-type TabId = 'params' | 'headers' | 'body' | 'auth';
+type TabId = 'params' | 'headers' | 'body' | 'auth' | 'advanced';
+
+function countAdvancedSettings(advanced?: AdvancedOptions): number {
+  if (!advanced) return 0;
+  let count = 0;
+  if (advanced.httpVersion !== 'default') count++;
+  if (advanced.tlsVersion !== 'default') count++;
+  const stringFields: (keyof AdvancedOptions)[] = [
+    'connectTimeout', 'keepaliveTime', 'cookie', 'cookieJar',
+    'proxy', 'proxyUser', 'noproxy', 'caCert', 'clientCert',
+    'clientKey', 'maxRedirs', 'retry', 'retryDelay', 'retryMaxTime',
+    'awsSigv4', 'oauth2Bearer', 'resolve', 'connectTo',
+    'limitRate', 'maxFilesize', 'userAgent', 'referer', 'rawFlags',
+  ];
+  for (const field of stringFields) {
+    if (advanced[field] && String(advanced[field]).trim()) count++;
+  }
+  const boolFields: (keyof AdvancedOptions)[] = [
+    'noKeepalive', 'tcpNodelay', 'locationTrusted',
+    'post301', 'post302', 'post303', 'compressed', 'verbose',
+    'digest', 'ntlm', 'negotiate',
+  ];
+  for (const field of boolFields) {
+    if (advanced[field]) count++;
+  }
+  return count;
+}
 
 export function RequestBuilder({
   request,
@@ -69,6 +97,11 @@ export function RequestBuilder({
       id: 'auth',
       label: 'Auth',
       badge: request.auth.type !== 'none' ? 1 : 0,
+    },
+    {
+      id: 'advanced',
+      label: 'Advanced',
+      badge: countAdvancedSettings(request.advanced),
     },
   ];
 
@@ -143,6 +176,12 @@ export function RequestBuilder({
           <AuthEditor
             auth={request.auth}
             onChange={(auth) => onChange({ ...request, auth })}
+          />
+        )}
+        {activeTab === 'advanced' && (
+          <AdvancedEditor
+            advanced={request.advanced ?? createDefaultAdvancedOptions()}
+            onChange={(advanced) => onChange({ ...request, advanced })}
           />
         )}
       </div>

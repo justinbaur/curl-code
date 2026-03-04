@@ -321,6 +321,42 @@ button:disabled {
   resize: vertical;
 }
 
+.body-input-wrapper {
+  position: relative;
+}
+
+.body-input-wrapper.has-highlight textarea {
+  resize: none;
+}
+
+.body-highlight-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  pointer-events: none;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.body-textarea-overlay {
+  color: transparent;
+  caret-color: var(--text-primary);
+  background: transparent;
+  line-height: 1.5;
+  padding: 4px 8px;
+  box-sizing: border-box;
+}
+
 /* Auth editor */
 .auth-type-selector {
   margin-bottom: 12px;
@@ -430,6 +466,55 @@ button:disabled {
   word-break: break-all;
 }
 
+/* Response Log */
+.response-log {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--app-background);
+  padding: 12px;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 500px;
+}
+
+.response-log pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.response-log-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.response-log-hint {
+  font-size: 12px;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+.log-line-info {
+  color: var(--vscode-debugConsole-infoForeground, #3794ff);
+}
+
+.log-line-request {
+  color: var(--vscode-debugConsole-warningForeground, #cca700);
+}
+
+.log-line-response {
+  color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.log-line-default {
+  color: inherit;
+}
+
 /* Empty state */
 .empty-state {
   display: flex;
@@ -520,4 +605,157 @@ button:disabled {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+/* Collapsible sections */
+.collapsible-section {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.collapsible-header:hover {
+  color: var(--accent-color);
+}
+
+.collapsible-chevron {
+  font-size: 14px;
+  transition: transform 0.15s;
+}
+
+.collapsible-chevron.open {
+  transform: rotate(90deg);
+}
+
+.collapsible-badge {
+  background: var(--accent-color);
+  color: var(--button-foreground);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  margin-left: auto;
+}
+
+.collapsible-content {
+  padding: 0 0 12px 20px;
+}
+
+/* Advanced editor */
+.advanced-editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.advanced-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.advanced-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.advanced-chip:hover {
+  border-color: var(--accent-color);
+}
+
+.advanced-chip.active {
+  border-color: var(--accent-color);
+  background: var(--accent-color);
+  color: var(--button-foreground);
+}
+
+.chip-badge {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-color);
+}
+
+.advanced-chip.active .chip-badge {
+  background: var(--button-foreground);
+}
+
+.advanced-detail-pane {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.advanced-custom-flags {
+  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
+}
+
+.advanced-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.advanced-field label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.advanced-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-color);
+}
+
+.advanced-toggle label {
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.advanced-raw-flags {
+  width: 100%;
+  min-height: 80px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  resize: vertical;
+}
+
+.advanced-help-text {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
