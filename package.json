@@ -2,7 +2,7 @@
   "name": "curl-code",
   "displayName": "curl-code",
   "description": "HTTP client using cURL backend for VS Code",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "JustinBaur",
   "license": "MIT",
   "private": true,
@@ -165,6 +165,12 @@
         "category": "curl-code"
       },
       {
+        "command": "curl-code.deleteRequest",
+        "title": "Delete Request",
+        "icon": "$(trash)",
+        "category": "curl-code"
+      },
+      {
         "command": "curl-code.newEnvironmentVariable",
         "title": "New Environment Variable",
         "icon": "$(add)",
@@ -297,6 +303,10 @@
         {
           "command": "curl-code.deleteCollection",
           "when": "view == curl-code.collections && viewItem == collection"
+        },
+        {
+          "command": "curl-code.deleteRequest",
+          "when": "view == curl-code.collections && viewItem == request"
         },
         {
           "command": "curl-code.setActiveEnvironment",

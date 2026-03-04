@@ -4,7 +4,7 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 
 > This extension is not affiliated with or endorsed by the cURL project or Daniel Stenberg.
 
-![showcase example](curl-code.png)
+![showcase example](curl-code-showcase.png)
 
 ## Features
 
@@ -15,7 +15,7 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 - **History**: Track all your requests automatically
 - **.http File Support**: Supports .http/.rest files with syntax highlighting
 - **Authentication**: Basic Auth, Bearer Token, and API Key support
-- **Response Viewer**: Syntax highlighting, headers, and timing info
+- **Response Viewer**: Syntax highlighting, debug logging, headers, and timing info
 - **Copy as cURL**: Export any request as a cURL command
 
 ## Settings
@@ -122,7 +122,7 @@ Environment variables can be marked as **Secret** to protect sensitive values li
 - Secrets are **automatically redacted** when exporting a collection
 - In the sidebar, secret values are displayed as `••••••`
 
-### Why This Matters
+#### Why This Matters
 
 If you keep your collections in source control (e.g., linked collections in a `.json` file), your secret values will not leak into your repository. Only the variable names and non-secret values are persisted to disk.
 
