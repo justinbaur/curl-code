@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.3.0]
+
+### Added
+
+- .env file support: import standard `.env` files as environments via the "Import .env File" command or the environments view title bar button
+  - .env file environments appear in the Environments tree view with a file icon, alongside global and collection environments
+  - File watcher automatically reloads variables when the .env file changes on disk
+  - Read-only enforcement: attempting to add, edit, or delete variables on a .env file environment prompts the user to edit the file directly, with an "Open File" action
+
 ## [v0.2.1]
 
 ### Fixed

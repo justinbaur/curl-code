@@ -11,6 +11,7 @@ import { CurlExecutor } from '../curl/executor';
 import { CollectionService } from '../services/CollectionService';
 import { HistoryService } from '../services/HistoryService';
 import { EnvironmentService } from '../services/EnvironmentService';
+import { EnvFileService } from '../services/EnvFileService';
 import { HttpFileParser } from '../parsers/httpFileParser';
 import { Logger } from '../utils/Logger';
 
@@ -24,11 +25,15 @@ export class RequestPanelManager {
         private curlExecutor: CurlExecutor,
         private collectionService: CollectionService,
         private historyService: HistoryService,
-        private environmentService: EnvironmentService
+        private environmentService: EnvironmentService,
+        private envFileService: EnvFileService
     ) {
         this.logger.info('RequestPanelManager initialized');
         // Broadcast environment changes to all open panels
         this.environmentService.onChange(() => {
+            this.sendEnvironments();
+        });
+        this.envFileService.onChange(() => {
             this.sendEnvironments();
         });
     }
@@ -254,66 +259,13 @@ export class RequestPanelManager {
 
                 case 'selectEnvironment':
                     if (message.environmentId) {
-                        let environmentName: string | undefined;
-
-                        const globalEnv = this.environmentService.getEnvironment(message.environmentId);
-
-                        if (globalEnv) {
-                            environmentName = globalEnv.name;
-                            await this.environmentService.setActiveEnvironment(message.environmentId);
-                        } else {
-                            const collections = this.collectionService.getCollections();
-                            let found = false;
-
-                            for (const collection of collections) {
-                                if (collection.environments) {
-                                    const envIndex = collection.environments.findIndex(e => e.id === message.environmentId);
-                                    if (envIndex !== -1) {
-                                        environmentName = collection.environments[envIndex].name;
-                                        collection.environments.forEach(e => e.isActive = false);
-                                        collection.environments[envIndex].isActive = true;
-                                        await this.collectionService.updateCollection(collection.id, collection);
-                                        found = true;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (!found) {
-                                vscode.window.showErrorMessage('Environment not found');
-                                break;
-                            }
-
-                            await this.environmentService.setActiveEnvironment(null);
-                        }
-
+                        // Delegate to the command which handles mutual exclusion across all environment types
+                        await vscode.commands.executeCommand('curl-code.setActiveEnvironment', { id: message.environmentId });
                         // Broadcast updated environments to all panels
                         this.sendEnvironments();
-
-                        if (environmentName) {
-                            vscode.window.showInformationMessage(`Environment "${environmentName}" is now active`);
-                        }
                     } else {
-                        await this.environmentService.setActiveEnvironment(null);
-
-                        const collections = this.collectionService.getCollections();
-                        for (const collection of collections) {
-                            if (collection.environments) {
-                                let needsUpdate = false;
-                                collection.environments.forEach(e => {
-                                    if (e.isActive) {
-                                        e.isActive = false;
-                                        needsUpdate = true;
-                                    }
-                                });
-                                if (needsUpdate) {
-                                    await this.collectionService.updateCollection(collection.id, collection);
-                                }
-                            }
-                        }
-
+                        await vscode.commands.executeCommand('curl-code.deactivateEnvironment');
                         this.sendEnvironments();
-                        vscode.window.showInformationMessage('Environment deactivated');
                     }
                     break;
             }
@@ -437,6 +389,7 @@ export class RequestPanelManager {
 
     private buildEnvironmentsMessage(): ExtensionToWebviewMessage {
         const globalEnvironments = this.environmentService.getEnvironments();
+        const envFileEnvironments = this.envFileService.getEnvFileEnvironments();
 
         const collectionEnvironments: Array<Environment & { collectionName?: string }> = [];
         const collections = this.collectionService.getCollections();
@@ -449,14 +402,19 @@ export class RequestPanelManager {
             }
         }
 
-        const allEnvironments = [...globalEnvironments, ...collectionEnvironments];
+        const allEnvironments = [...globalEnvironments, ...envFileEnvironments, ...collectionEnvironments];
 
         const activeEnv = this.environmentService.getActiveEnvironment();
         let activeId: string | undefined;
         if (activeEnv) {
             activeId = activeEnv.id;
         } else {
-            activeId = collectionEnvironments.find(env => env.isActive)?.id;
+            const activeEnvFile = this.envFileService.getActiveEnvironment();
+            if (activeEnvFile) {
+                activeId = activeEnvFile.id;
+            } else {
+                activeId = collectionEnvironments.find(env => env.isActive)?.id;
+            }
         }
 
         return { type: 'loadEnvironments', environments: allEnvironments, activeId };

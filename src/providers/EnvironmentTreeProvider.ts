@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import type { Environment, EnvironmentVariable } from '../types/collection';
 import type { EnvironmentService } from '../services/EnvironmentService';
 import type { CollectionService } from '../services/CollectionService';
+import type { EnvFileService } from '../services/EnvFileService';
 
 // Extended variable with environment ID and index for tree operations
 interface VariableTreeItem extends EnvironmentVariable {
@@ -15,9 +16,11 @@ interface VariableTreeItem extends EnvironmentVariable {
 
 type TreeItemData =
     | { type: 'global-environment'; environment: Environment }
+    | { type: 'envfile-environment'; environment: Environment }
     | { type: 'collection'; collectionId: string; collectionName: string; environments: Environment[] }
     | { type: 'collection-environment'; environment: Environment; collectionName: string; collectionId: string }
-    | { type: 'variable'; variable: VariableTreeItem };
+    | { type: 'variable'; variable: VariableTreeItem }
+    | { type: 'envfile-variable'; variable: VariableTreeItem };
 
 // Re-export so command handlers can read collectionId from the item
 export type { TreeItemData as EnvironmentTreeItemData };
@@ -28,11 +31,13 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
 
     constructor(
         private environmentService: EnvironmentService,
-        private collectionService: CollectionService
+        private collectionService: CollectionService,
+        private envFileService: EnvFileService
     ) {
-        // Refresh tree when either service changes
+        // Refresh tree when any service changes
         this.environmentService.onChange(() => this.refresh());
         this.collectionService.onChange(() => this.refresh());
+        this.envFileService.onChange(() => this.refresh());
     }
 
     /**
@@ -48,6 +53,10 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
     getTreeItem(element: TreeItemData): vscode.TreeItem {
         if (element.type === 'collection') {
             return this.createCollectionItem(element.collectionId, element.collectionName, element.environments);
+        } else if (element.type === 'envfile-environment') {
+            return this.createEnvFileEnvironmentItem(element.environment);
+        } else if (element.type === 'envfile-variable') {
+            return this.createEnvFileVariableItem(element.variable);
         } else if ('environment' in element) {
             const collectionName = element.type === 'collection-environment'
                 ? element.collectionName
@@ -63,7 +72,7 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
      */
     async getChildren(element?: TreeItemData): Promise<TreeItemData[]> {
         if (!element) {
-            // Root level: return global environments and collection nodes
+            // Root level: return global environments, env file environments, and collection nodes
             const items: TreeItemData[] = [];
 
             // 1. Global environments
@@ -73,7 +82,14 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
                 environment: env
             })));
 
-            // 2. Collection nodes (all collections, so users can add environments to any)
+            // 2. .env file environments
+            const envFileEnvs = this.envFileService.getEnvFileEnvironments();
+            items.push(...envFileEnvs.map(env => ({
+                type: 'envfile-environment' as const,
+                environment: env
+            })));
+
+            // 3. Collection nodes (all collections, so users can add environments to any)
             const collections = this.collectionService.getCollections();
             for (const collection of collections) {
                 items.push({
@@ -95,6 +111,21 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
                 collectionName: element.collectionName,
                 collectionId: element.collectionId
             }));
+        }
+
+        // Env file environment expanded: return read-only variables
+        if (element.type === 'envfile-environment') {
+            const env = element.environment;
+            return env.variables
+                .filter(v => v.enabled)
+                .map((variable, index) => ({
+                    type: 'envfile-variable' as const,
+                    variable: {
+                        ...variable,
+                        environmentId: env.id,
+                        index
+                    }
+                }));
         }
 
         // Environment expanded: return its variables
@@ -134,6 +165,31 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
             ? `${environments.length} env${environments.length !== 1 ? 's' : ''}`
             : 'no environments';
         item.tooltip = `Collection: ${collectionName}\n${environments.length} environment${environments.length !== 1 ? 's' : ''}`;
+
+        return item;
+    }
+
+    /**
+     * Create a tree item for a .env file environment
+     */
+    private createEnvFileEnvironmentItem(env: Environment): vscode.TreeItem {
+        const hasVariables = env.variables.length > 0;
+
+        const item = new vscode.TreeItem(
+            env.name,
+            hasVariables
+                ? vscode.TreeItemCollapsibleState.Collapsed
+                : vscode.TreeItemCollapsibleState.None
+        );
+
+        item.id = env.id;
+        item.contextValue = env.isActive ? 'envfileActiveEnvironment' : 'envfileEnvironment';
+        item.iconPath = new vscode.ThemeIcon(
+            env.isActive ? 'check' : 'file',
+            env.isActive ? new vscode.ThemeColor('charts.green') : undefined
+        );
+        item.description = env.isActive ? 'Active' : `${env.variables.length} vars`;
+        item.tooltip = `${env.name} (.env file)\n${env.filePath}\n${env.variables.length} variables`;
 
         return item;
     }
@@ -196,6 +252,25 @@ export class EnvironmentTreeProvider implements vscode.TreeDataProvider<TreeItem
             : `${variable.key} = ${variable.value}`;
 
         // Store environment ID, variable key, and index for unique tree item IDs
+        item.id = `${variable.environmentId}:${variable.key}:${variable.index}`;
+
+        return item;
+    }
+
+    /**
+     * Create a tree item for a read-only .env file variable
+     */
+    private createEnvFileVariableItem(variable: VariableTreeItem): vscode.TreeItem {
+        const item = new vscode.TreeItem(
+            variable.key,
+            vscode.TreeItemCollapsibleState.None
+        );
+
+        // Distinct contextValue — no edit/delete menus for envfile variables
+        item.contextValue = 'envfileVariable';
+        item.iconPath = new vscode.ThemeIcon('symbol-variable');
+        item.description = variable.value;
+        item.tooltip = `${variable.key} = ${variable.value} (from .env file)`;
         item.id = `${variable.environmentId}:${variable.key}:${variable.index}`;
 
         return item;

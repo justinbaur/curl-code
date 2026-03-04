@@ -39,6 +39,8 @@ export interface Environment {
     name: string;
     variables: EnvironmentVariable[];
     isActive: boolean;
+    /** When set, this environment is backed by a .env file at this path */
+    filePath?: string;
 }
 
 export interface EnvironmentVariable {

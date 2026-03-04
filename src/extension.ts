@@ -12,6 +12,7 @@ import { RequestPanelManager } from './webview';
 import { CollectionService } from './services/CollectionService';
 import { HistoryService } from './services/HistoryService';
 import { EnvironmentService } from './services/EnvironmentService';
+import { EnvFileService } from './services/EnvFileService';
 import { CurlExecutor } from './curl/executor';
 import { Logger } from './utils/Logger';
 import { generateId } from './types/request';
@@ -24,13 +25,15 @@ export async function activate(context: vscode.ExtensionContext) {
     const collectionService = new CollectionService(context);
     const historyService = new HistoryService(context);
     const environmentService = new EnvironmentService(context);
+    const envFileService = new EnvFileService(context);
 
     await collectionService.initialize();
     await historyService.initialize();
     await environmentService.initialize();
+    await envFileService.initialize();
 
-    // Initialize CurlExecutor with EnvironmentService and CollectionService for variable interpolation
-    const curlExecutor = new CurlExecutor(environmentService, collectionService);
+    // Initialize CurlExecutor with EnvironmentService, CollectionService, and EnvFileService for variable interpolation
+    const curlExecutor = new CurlExecutor(environmentService, collectionService, envFileService);
 
     // Check if cURL is available
     const curlAvailable = await curlExecutor.checkCurlAvailable();
@@ -48,7 +51,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Initialize tree providers
     const collectionsProvider = new CollectionTreeProvider(collectionService);
     const historyProvider = new HistoryTreeProvider(historyService);
-    const environmentProvider = new EnvironmentTreeProvider(environmentService, collectionService);
+    const environmentProvider = new EnvironmentTreeProvider(environmentService, collectionService, envFileService);
 
     // Register tree views
     const collectionsView = vscode.window.createTreeView('curl-code.collections', {
@@ -82,6 +85,14 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
+        // Check for active .env file environment
+        const activeEnvFile = envFileService.getActiveEnvironment();
+        if (activeEnvFile) {
+            statusBarItem.text = `$(file) ${activeEnvFile.name}`;
+            statusBarItem.show();
+            return;
+        }
+
         // Check for active collection environments
         const collections = collectionService.getCollections();
         for (const collection of collections) {
@@ -111,6 +122,10 @@ export async function activate(context: vscode.ExtensionContext) {
         environmentProvider.refresh();
         updateStatusBar();
     });
+    envFileService.onChange(() => {
+        environmentProvider.refresh();
+        updateStatusBar();
+    });
 
     // Initialize webview manager
     const requestPanelManager = new RequestPanelManager(
@@ -118,7 +133,8 @@ export async function activate(context: vscode.ExtensionContext) {
         curlExecutor,
         collectionService,
         historyService,
-        environmentService
+        environmentService,
+        envFileService
     );
 
     // Register commands
@@ -276,6 +292,19 @@ export async function activate(context: vscode.ExtensionContext) {
                 return;
             }
 
+            // .env file environments are read-only — variables are managed in the file
+            if (envFileService.getEnvironment(envId)) {
+                const envFileEnv = envFileService.getEnvironment(envId);
+                const action = await vscode.window.showWarningMessage(
+                    'Variables in .env file environments are managed by editing the file directly.',
+                    'Open File'
+                );
+                if (action === 'Open File' && envFileEnv?.filePath) {
+                    await vscode.window.showTextDocument(vscode.Uri.file(envFileEnv.filePath));
+                }
+                return;
+            }
+
             const name = await vscode.window.showInputBox({
                 prompt: 'Enter variable name',
                 placeHolder: 'url'
@@ -354,6 +383,19 @@ export async function activate(context: vscode.ExtensionContext) {
                 return;
             }
 
+            // .env file variables are read-only
+            if (envFileService.getEnvironment(item.variable.environmentId)) {
+                const envFileEnv = envFileService.getEnvironment(item.variable.environmentId);
+                const action = await vscode.window.showWarningMessage(
+                    'Variables in .env file environments are managed by editing the file directly.',
+                    'Open File'
+                );
+                if (action === 'Open File' && envFileEnv?.filePath) {
+                    await vscode.window.showTextDocument(vscode.Uri.file(envFileEnv.filePath));
+                }
+                return;
+            }
+
             const environmentId = item.variable.environmentId;
             const variableKey = item.variable.key;
             const variableType = item.variable.type;
@@ -411,6 +453,19 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('curl-code.deleteEnvironmentVariable', async (item) => {
             // Item is a TreeItemData with variable property
             if (!item?.variable?.environmentId || !item?.variable?.key) {
+                return;
+            }
+
+            // .env file variables are read-only
+            if (envFileService.getEnvironment(item.variable.environmentId)) {
+                const envFileEnv = envFileService.getEnvironment(item.variable.environmentId);
+                const action = await vscode.window.showWarningMessage(
+                    'Variables in .env file environments are managed by editing the file directly.',
+                    'Open File'
+                );
+                if (action === 'Open File' && envFileEnv?.filePath) {
+                    await vscode.window.showTextDocument(vscode.Uri.file(envFileEnv.filePath));
+                }
                 return;
             }
 
@@ -523,6 +578,34 @@ export async function activate(context: vscode.ExtensionContext) {
                     environmentName = globalEnv.name;
                     await environmentService.setActiveEnvironment(envId);
 
+                    // Deactivate envfile environments
+                    await envFileService.setActiveEnvironment(null);
+
+                    // Deactivate all collection environments
+                    const collections = collectionService.getCollections();
+                    for (const collection of collections) {
+                        if (collection.environments) {
+                            let needsUpdate = false;
+                            collection.environments.forEach(e => {
+                                if (e.isActive) {
+                                    e.isActive = false;
+                                    needsUpdate = true;
+                                }
+                            });
+                            if (needsUpdate) {
+                                await collectionService.updateCollection(collection.id, collection);
+                            }
+                        }
+                    }
+                } else if (envFileService.getEnvironment(envId)) {
+                    // It's a .env file environment
+                    const envFileEnv = envFileService.getEnvironment(envId)!;
+                    environmentName = envFileEnv.name;
+                    await envFileService.setActiveEnvironment(envId);
+
+                    // Deactivate global environments
+                    await environmentService.setActiveEnvironment(null);
+
                     // Deactivate all collection environments
                     const collections = collectionService.getCollections();
                     for (const collection of collections) {
@@ -568,8 +651,9 @@ export async function activate(context: vscode.ExtensionContext) {
                         return;
                     }
 
-                    // Deactivate global environments
+                    // Deactivate global and envfile environments
                     await environmentService.setActiveEnvironment(null);
+                    await envFileService.setActiveEnvironment(null);
                 }
 
                 // Refresh environment tree
@@ -584,6 +668,9 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('curl-code.deactivateEnvironment', async () => {
             // Deactivate global environments
             await environmentService.setActiveEnvironment(null);
+
+            // Deactivate envfile environments
+            await envFileService.setActiveEnvironment(null);
 
             // Deactivate all collection environments
             const collections = collectionService.getCollections();
@@ -630,6 +717,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 return;
             }
 
+            // .env file environment
+            if (envFileService.getEnvironment(env.id)) {
+                await envFileService.removeEnvFile(env.id);
+                vscode.window.showInformationMessage(`Environment "${env.name}" removed`);
+                return;
+            }
+
             // Collection environment
             const collections = collectionService.getCollections();
             for (const collection of collections) {
@@ -648,10 +742,13 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
 
         vscode.commands.registerCommand('curl-code.quickSwitchEnvironment', async () => {
-            const environments = environmentService.getEnvironments();
-            const activeEnv = environmentService.getActiveEnvironment();
+            const globalEnvironments = environmentService.getEnvironments();
+            const envFileEnvironments = envFileService.getEnvFileEnvironments();
+            const allEnvironments = [...globalEnvironments, ...envFileEnvironments];
 
-            if (environments.length === 0) {
+            const anyActive = allEnvironments.some(e => e.isActive);
+
+            if (allEnvironments.length === 0) {
                 const action = await vscode.window.showInformationMessage(
                     'No environments found',
                     'Create Environment'
@@ -665,11 +762,11 @@ export async function activate(context: vscode.ExtensionContext) {
             const items = [
                 {
                     label: '$(circle-slash) No Environment',
-                    description: activeEnv === undefined ? '(current)' : '',
-                    id: null
+                    description: !anyActive ? '(current)' : '',
+                    id: null as string | null
                 },
-                ...environments.map(env => ({
-                    label: `$(${env.isActive ? 'check' : 'circle-outline'}) ${env.name}`,
+                ...allEnvironments.map(env => ({
+                    label: `$(${env.isActive ? 'check' : (env.filePath ? 'file' : 'circle-outline')}) ${env.name}`,
                     description: env.isActive ? '(current)' : `${env.variables.length} variables`,
                     id: env.id
                 }))
@@ -680,14 +777,67 @@ export async function activate(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                await environmentService.setActiveEnvironment(selected.id);
                 if (selected.id) {
-                    const env = environmentService.getEnvironment(selected.id);
-                    vscode.window.showInformationMessage(`Environment "${env?.name}" is now active`);
+                    // Use the setActiveEnvironment command which handles mutual exclusion
+                    await vscode.commands.executeCommand('curl-code.setActiveEnvironment', { id: selected.id });
                 } else {
-                    vscode.window.showInformationMessage('Environment deactivated');
+                    await vscode.commands.executeCommand('curl-code.deactivateEnvironment');
                 }
             }
+        }),
+
+        // .env file commands
+        vscode.commands.registerCommand('curl-code.importEnvFile', async () => {
+            const uris = await vscode.window.showOpenDialog({
+                canSelectMany: false,
+                filters: {
+                    'Env files': ['env'],
+                    'All files': ['*']
+                },
+                openLabel: 'Import .env File'
+            });
+
+            if (uris && uris.length > 0) {
+                const env = await envFileService.importEnvFile(uris[0].fsPath);
+                vscode.window.showInformationMessage(`Imported "${env.name}" with ${env.variables.length} variables`);
+            }
+        }),
+
+        vscode.commands.registerCommand('curl-code.removeEnvFile', async (item) => {
+            const env = item?.environment;
+            if (!env?.id || !env?.name) {
+                return;
+            }
+
+            const confirm = await vscode.window.showWarningMessage(
+                `Remove .env file "${env.name}" from environments?`,
+                { modal: true },
+                'Remove'
+            );
+
+            if (confirm === 'Remove') {
+                await envFileService.removeEnvFile(env.id);
+                vscode.window.showInformationMessage(`"${env.name}" removed`);
+            }
+        }),
+
+        vscode.commands.registerCommand('curl-code.reloadEnvFile', async (item) => {
+            const env = item?.environment;
+            if (!env?.id) {
+                return;
+            }
+
+            await envFileService.reloadEnvFile(env.id);
+            vscode.window.showInformationMessage(`"${env.name}" reloaded`);
+        }),
+
+        vscode.commands.registerCommand('curl-code.openEnvFile', async (item) => {
+            const env = item?.environment;
+            if (!env?.filePath) {
+                return;
+            }
+
+            await vscode.window.showTextDocument(vscode.Uri.file(env.filePath));
         }),
 
         // History commands
@@ -746,6 +896,7 @@ export async function activate(context: vscode.ExtensionContext) {
         environmentView,
         requestPanelManager,
         statusBarItem,
+        envFileService,
         {
             dispose: () => {
                 collectionService.onChange(() => {});
