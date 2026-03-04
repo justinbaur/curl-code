@@ -10,6 +10,7 @@ import { ArgumentBuilder, type CurlOptions } from './argumentBuilder';
 import { ResponseParser } from './responseParser';
 import type { EnvironmentService } from '../services/EnvironmentService';
 import type { CollectionService } from '../services/CollectionService';
+import type { EnvFileService } from '../services/EnvFileService';
 
 export class CurlExecutor {
     private currentProcess: ChildProcess | null = null;
@@ -17,12 +18,14 @@ export class CurlExecutor {
     private responseParser: ResponseParser;
     private environmentService: EnvironmentService | undefined;
     private collectionService: CollectionService | undefined;
+    private envFileService: EnvFileService | undefined;
 
-    constructor(environmentService?: EnvironmentService, collectionService?: CollectionService) {
+    constructor(environmentService?: EnvironmentService, collectionService?: CollectionService, envFileService?: EnvFileService) {
         this.argumentBuilder = new ArgumentBuilder();
         this.responseParser = new ResponseParser();
         this.environmentService = environmentService;
         this.collectionService = collectionService;
+        this.envFileService = envFileService;
     }
 
     /**
@@ -163,11 +166,16 @@ export class CurlExecutor {
             return request;
         }
 
-        // Create a resolver function that checks both global and collection environments
+        // Create a resolver function that checks global, envfile, and collection environments
         const resolveVar = (text: string): string => {
             // First try global environment
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             let result = this.environmentService!.resolveVariables(text);
+
+            // If no substitution happened, try .env file environments
+            if (result === text && this.envFileService) {
+                result = this.envFileService.resolveVariables(text);
+            }
 
             // If no substitution happened and we have collection service, try collection environments
             if (result === text && this.collectionService) {

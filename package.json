@@ -2,7 +2,7 @@
   "name": "curl-code",
   "displayName": "curl-code",
   "description": "HTTP client using cURL backend for VS Code",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "publisher": "JustinBaur",
   "license": "MIT",
   "private": true,
@@ -124,7 +124,7 @@
       },
       {
         "view": "curl-code.environments",
-        "contents": "No environments configured.\nEnvironments let you define variables like {{baseUrl}} to reuse across requests.\n[New Environment](command:curl-code.newEnvironment)"
+        "contents": "No environments configured.\nEnvironments let you define variables like {{baseUrl}} to reuse across requests.\n[New Environment](command:curl-code.newEnvironment)\n[Import .env File](command:curl-code.importEnvFile)"
       }
     ],
     "commands": [
@@ -251,6 +251,30 @@
         "title": "Refresh Collections",
         "icon": "$(refresh)",
         "category": "curl-code"
+      },
+      {
+        "command": "curl-code.importEnvFile",
+        "title": "Import .env File",
+        "icon": "$(file-add)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.removeEnvFile",
+        "title": "Remove .env File",
+        "icon": "$(trash)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.reloadEnvFile",
+        "title": "Reload .env File",
+        "icon": "$(refresh)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.openEnvFile",
+        "title": "Open .env File",
+        "icon": "$(go-to-file)",
+        "category": "curl-code"
       }
     ],
     "menus": {
@@ -281,6 +305,11 @@
         },
         {
           "command": "curl-code.newEnvironment",
+          "when": "view == curl-code.environments",
+          "group": "navigation"
+        },
+        {
+          "command": "curl-code.importEnvFile",
           "when": "view == curl-code.environments",
           "group": "navigation"
         },
@@ -385,6 +414,48 @@
         {
           "command": "curl-code.deleteEnvironment",
           "when": "view == curl-code.environments && viewItem == collectionActiveEnvironment"
+        },
+        {
+          "command": "curl-code.setActiveEnvironment",
+          "when": "view == curl-code.environments && viewItem == envfileEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.setActiveEnvironment",
+          "when": "view == curl-code.environments && viewItem == envfileEnvironment"
+        },
+        {
+          "command": "curl-code.deactivateEnvironment",
+          "when": "view == curl-code.environments && viewItem == envfileActiveEnvironment",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.deactivateEnvironment",
+          "when": "view == curl-code.environments && viewItem == envfileActiveEnvironment"
+        },
+        {
+          "command": "curl-code.openEnvFile",
+          "when": "view == curl-code.environments && viewItem == envfileEnvironment"
+        },
+        {
+          "command": "curl-code.openEnvFile",
+          "when": "view == curl-code.environments && viewItem == envfileActiveEnvironment"
+        },
+        {
+          "command": "curl-code.reloadEnvFile",
+          "when": "view == curl-code.environments && viewItem == envfileEnvironment"
+        },
+        {
+          "command": "curl-code.reloadEnvFile",
+          "when": "view == curl-code.environments && viewItem == envfileActiveEnvironment"
+        },
+        {
+          "command": "curl-code.removeEnvFile",
+          "when": "view == curl-code.environments && viewItem == envfileEnvironment"
+        },
+        {
+          "command": "curl-code.removeEnvFile",
+          "when": "view == curl-code.environments && viewItem == envfileActiveEnvironment"
         },
         {
           "command": "curl-code.newCollectionEnvironment",
