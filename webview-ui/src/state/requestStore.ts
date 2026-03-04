@@ -4,6 +4,7 @@
 
 import { create } from 'zustand';
 import type { HttpRequest } from '../vscode';
+import { createDefaultAdvancedOptions } from '../vscode';
 
 interface RequestState {
   request: HttpRequest | null;
@@ -23,6 +24,7 @@ const initialRequest: HttpRequest = {
   queryParams: [],
   body: { type: 'none', content: '' },
   auth: { type: 'none' },
+  advanced: createDefaultAdvancedOptions(),
   createdAt: Date.now(),
   updatedAt: Date.now(),
 };

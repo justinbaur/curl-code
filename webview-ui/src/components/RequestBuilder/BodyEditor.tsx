@@ -2,7 +2,9 @@
  * Request body editor component
  */
 
+import { useMemo, useRef, useCallback } from 'react';
 import type { HttpBody } from '../../vscode';
+import { highlightJson } from '../../utils/jsonHighlight';
 
 interface BodyEditorProps {
   body: HttpBody;
@@ -18,6 +20,9 @@ const BODY_TYPES: { value: HttpBody['type']; label: string }[] = [
 ];
 
 export function BodyEditor({ body, onChange }: BodyEditorProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlightRef = useRef<HTMLPreElement>(null);
+
   const handleTypeChange = (type: HttpBody['type']) => {
     onChange({ ...body, type });
   };
@@ -35,6 +40,26 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
       // Invalid JSON, do nothing
     }
   };
+
+  const syncScroll = useCallback(() => {
+    if (textareaRef.current && highlightRef.current) {
+      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
+      highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  }, []);
+
+  const isJson = body.type === 'json';
+
+  const highlighted = useMemo(() => {
+    if (!isJson || !body.content) return null;
+    try {
+      return highlightJson(body.content);
+    } catch {
+      return null;
+    }
+  }, [body.content, isJson]);
+
+  const showHighlight = isJson && highlighted !== null;
 
   return (
     <div className="body-editor">
@@ -63,18 +88,31 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
       </div>
 
       {body.type !== 'none' && body.type !== 'form-data' && (
-        <textarea
-          value={body.content}
-          onChange={(e) => handleContentChange(e.target.value)}
-          placeholder={
-            body.type === 'json'
-              ? '{\n  "key": "value"\n}'
-              : body.type === 'x-www-form-urlencoded'
-              ? 'key=value&key2=value2'
-              : 'Enter request body'
-          }
-          spellCheck={false}
-        />
+        <div className={`body-input-wrapper${showHighlight ? ' has-highlight' : ''}`}>
+          {showHighlight && (
+            <pre
+              ref={highlightRef}
+              className="body-highlight-layer"
+              aria-hidden="true"
+              dangerouslySetInnerHTML={{ __html: highlighted + '\n' }}
+            />
+          )}
+          <textarea
+            ref={textareaRef}
+            className={showHighlight ? 'body-textarea-overlay' : undefined}
+            value={body.content}
+            onChange={(e) => handleContentChange(e.target.value)}
+            onScroll={showHighlight ? syncScroll : undefined}
+            placeholder={
+              body.type === 'json'
+                ? '{\n  "key": "value"\n}'
+                : body.type === 'x-www-form-urlencoded'
+                ? 'key=value&key2=value2'
+                : 'Enter request body'
+            }
+            spellCheck={false}
+          />
+        </div>
       )}
 
       {body.type === 'form-data' && (

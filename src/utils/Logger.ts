@@ -37,9 +37,10 @@ export class Logger {
 
         if (data !== undefined) {
             this.outputChannel.appendLine(`  Data: ${JSON.stringify(data, null, 2)}`);
+            console.log(logMessage, data);
+        } else {
+            console.log(logMessage);
         }
-
-        console.log(logMessage, data);
     }
 
     /**
@@ -52,9 +53,10 @@ export class Logger {
 
         if (data !== undefined) {
             this.outputChannel.appendLine(`  Data: ${JSON.stringify(data, null, 2)}`);
+            console.warn(logMessage, data);
+        } else {
+            console.warn(logMessage);
         }
-
-        console.warn(logMessage, data);
     }
 
     /**
@@ -72,9 +74,10 @@ export class Logger {
             } else {
                 this.outputChannel.appendLine(`  Error: ${JSON.stringify(error, null, 2)}`);
             }
+            console.error(logMessage, error);
+        } else {
+            console.error(logMessage);
         }
-
-        console.error(logMessage, error);
 
         // Auto-show output channel on errors
         this.show();
@@ -90,9 +93,10 @@ export class Logger {
 
         if (data !== undefined) {
             this.outputChannel.appendLine(`  Data: ${JSON.stringify(data, null, 2)}`);
+            console.debug(logMessage, data);
+        } else {
+            console.debug(logMessage);
         }
-
-        console.debug(logMessage, data);
     }
 
     /**

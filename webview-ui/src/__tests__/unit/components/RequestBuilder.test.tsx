@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RequestBuilder } from '../../../components/RequestBuilder/RequestBuilder';
 import type { HttpRequest } from '../../../vscode';
+import { createDefaultAdvancedOptions } from '../../../vscode';
 
 // Mock child components to isolate RequestBuilder logic
 vi.mock('../../../components/RequestBuilder/MethodSelector', () => ({
@@ -46,6 +47,12 @@ vi.mock('../../../components/RequestBuilder/BodyEditor', () => ({
 vi.mock('../../../components/RequestBuilder/AuthEditor', () => ({
 	AuthEditor: ({ auth, onChange }: any) => (
 		<div data-testid="auth-editor">Auth Editor</div>
+	),
+}));
+
+vi.mock('../../../components/RequestBuilder/AdvancedEditor', () => ({
+	AdvancedEditor: ({ advanced, onChange }: any) => (
+		<div data-testid="advanced-editor">Advanced Editor</div>
 	),
 }));
 
@@ -136,13 +143,14 @@ describe('RequestBuilder', () => {
 			expect(nameInput).toHaveValue('My Request');
 		});
 
-		it('should render all tabs', () => {
+		it('should render all tabs including advanced', () => {
 			renderBuilder();
 
 			expect(screen.getByTestId('tab-params')).toBeInTheDocument();
 			expect(screen.getByTestId('tab-headers')).toBeInTheDocument();
 			expect(screen.getByTestId('tab-body')).toBeInTheDocument();
 			expect(screen.getByTestId('tab-auth')).toBeInTheDocument();
+			expect(screen.getByTestId('tab-advanced')).toBeInTheDocument();
 		});
 
 		it('should show params tab content by default', () => {
@@ -353,6 +361,16 @@ describe('RequestBuilder', () => {
 			expect(screen.getByTestId('auth-editor')).toBeInTheDocument();
 			expect(screen.queryByTestId('query-params-editor')).not.toBeInTheDocument();
 		});
+
+		it('should switch to advanced tab when clicked', async () => {
+			const user = userEvent.setup();
+			renderBuilder();
+
+			await user.click(screen.getByTestId('tab-advanced'));
+
+			expect(screen.getByTestId('advanced-editor')).toBeInTheDocument();
+			expect(screen.queryByTestId('query-params-editor')).not.toBeInTheDocument();
+		});
 	});
 
 	describe('tab badges', () => {
@@ -402,6 +420,31 @@ describe('RequestBuilder', () => {
 			});
 
 			expect(screen.queryByTestId('badge-params')).not.toBeInTheDocument();
+		});
+
+		it('should show badge for configured advanced options', () => {
+			renderBuilder({
+				request: createMockRequest({
+					advanced: {
+						...createDefaultAdvancedOptions(),
+						compressed: true,
+						proxy: 'http://proxy:8080',
+						httpVersion: 'http2',
+					},
+				}),
+			});
+
+			expect(screen.getByTestId('badge-advanced')).toHaveTextContent('3');
+		});
+
+		it('should not show badge when advanced options are all defaults', () => {
+			renderBuilder({
+				request: createMockRequest({
+					advanced: createDefaultAdvancedOptions(),
+				}),
+			});
+
+			expect(screen.queryByTestId('badge-advanced')).not.toBeInTheDocument();
 		});
 	});
 });

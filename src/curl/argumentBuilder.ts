@@ -48,6 +48,9 @@ export class ArgumentBuilder {
         // Timeout (convert ms to seconds)
         args.push('--max-time', String(Math.ceil(options.timeout / 1000)));
 
+        // Advanced options
+        this.addAdvancedArgs(args, request);
+
         return args;
     }
 
@@ -149,6 +152,119 @@ export class ArgumentBuilder {
                 }
                 break;
         }
+    }
+
+    /**
+     * Add advanced cURL flags from the request's advanced options
+     */
+    private addAdvancedArgs(args: string[], request: HttpRequest): void {
+        const adv = request.advanced;
+        if (!adv) return;
+
+        // HTTP Version
+        const httpVersionMap: Record<string, string> = {
+            'http1.0': '--http1.0',
+            'http1.1': '--http1.1',
+            'http2': '--http2',
+            'http2-prior-knowledge': '--http2-prior-knowledge',
+            'http3': '--http3',
+            'http3-only': '--http3-only',
+        };
+        if (adv.httpVersion !== 'default' && httpVersionMap[adv.httpVersion]) {
+            args.push(httpVersionMap[adv.httpVersion]);
+        }
+
+        // Connection & Timeout
+        if (adv.connectTimeout) args.push('--connect-timeout', adv.connectTimeout);
+        if (adv.keepaliveTime) args.push('--keepalive-time', adv.keepaliveTime);
+        if (adv.noKeepalive) args.push('--no-keepalive');
+        if (adv.tcpNodelay) args.push('--tcp-nodelay');
+
+        // Cookies
+        if (adv.cookie) args.push('--cookie', adv.cookie);
+        if (adv.cookieJar) args.push('--cookie-jar', adv.cookieJar);
+
+        // Proxy
+        if (adv.proxy) args.push('--proxy', adv.proxy);
+        if (adv.proxyUser) args.push('--proxy-user', adv.proxyUser);
+        if (adv.noproxy) args.push('--noproxy', adv.noproxy);
+
+        // SSL/TLS version
+        const tlsVersionMap: Record<string, string> = {
+            'tlsv1.0': '--tlsv1.0',
+            'tlsv1.1': '--tlsv1.1',
+            'tlsv1.2': '--tlsv1.2',
+            'tlsv1.3': '--tlsv1.3',
+        };
+        if (adv.tlsVersion !== 'default' && tlsVersionMap[adv.tlsVersion]) {
+            args.push(tlsVersionMap[adv.tlsVersion]);
+        }
+        if (adv.caCert) args.push('--cacert', adv.caCert);
+        if (adv.clientCert) args.push('--cert', adv.clientCert);
+        if (adv.clientKey) args.push('--key', adv.clientKey);
+
+        // Redirects
+        if (adv.maxRedirs) args.push('--max-redirs', adv.maxRedirs);
+        if (adv.locationTrusted) args.push('--location-trusted');
+        if (adv.post301) args.push('--post301');
+        if (adv.post302) args.push('--post302');
+        if (adv.post303) args.push('--post303');
+
+        // Retry
+        if (adv.retry) args.push('--retry', adv.retry);
+        if (adv.retryDelay) args.push('--retry-delay', adv.retryDelay);
+        if (adv.retryMaxTime) args.push('--retry-max-time', adv.retryMaxTime);
+
+        // Compression & Output
+        if (adv.compressed) args.push('--compressed');
+        if (adv.verbose) args.push('--verbose');
+
+        // Auth extensions
+        if (adv.digest) args.push('--digest');
+        if (adv.ntlm) args.push('--ntlm');
+        if (adv.negotiate) args.push('--negotiate');
+        if (adv.awsSigv4) args.push('--aws-sigv4', adv.awsSigv4);
+        if (adv.oauth2Bearer) args.push('--oauth2-bearer', adv.oauth2Bearer);
+
+        // DNS / Resolution
+        if (adv.resolve) args.push('--resolve', adv.resolve);
+        if (adv.connectTo) args.push('--connect-to', adv.connectTo);
+
+        // Rate Limiting
+        if (adv.limitRate) args.push('--limit-rate', adv.limitRate);
+        if (adv.maxFilesize) args.push('--max-filesize', adv.maxFilesize);
+
+        // Other shortcuts
+        if (adv.userAgent) args.push('--user-agent', adv.userAgent);
+        if (adv.referer) args.push('--referer', adv.referer);
+
+        // Raw flags (appended LAST so they can override structured flags)
+        if (adv.rawFlags.trim()) {
+            const parsed = this.parseRawFlags(adv.rawFlags);
+            args.push(...parsed);
+        }
+    }
+
+    /**
+     * Parse a raw flags string into an array of arguments.
+     * Handles quoted strings (single and double quotes) and flags with values.
+     */
+    private parseRawFlags(raw: string): string[] {
+        const args: string[] = [];
+        const regex = /(?:[^\s"']+|"[^"]*"|'[^']*')+/g;
+        let match: RegExpExecArray | null;
+
+        while ((match = regex.exec(raw)) !== null) {
+            let arg = match[0];
+            // Strip surrounding quotes
+            if ((arg.startsWith('"') && arg.endsWith('"')) ||
+                (arg.startsWith("'") && arg.endsWith("'"))) {
+                arg = arg.slice(1, -1);
+            }
+            args.push(arg);
+        }
+
+        return args;
     }
 
     /**

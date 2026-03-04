@@ -2,7 +2,7 @@
   "name": "curl-code",
   "displayName": "curl-code",
   "description": "HTTP client using cURL backend for VS Code",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "JustinBaur",
   "license": "MIT",
   "private": true,
@@ -113,6 +113,20 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "curl-code.collections",
+        "contents": "No collections yet.\n[New Collection](command:curl-code.newCollection)\n[Import Collection](command:curl-code.importCollection)\nOr create a quick request:\n[New Request](command:curl-code.newRequest)"
+      },
+      {
+        "view": "curl-code.history",
+        "contents": "No request history yet.\nSend a request to see it appear here.\n[New Request](command:curl-code.newRequest)"
+      },
+      {
+        "view": "curl-code.environments",
+        "contents": "No environments configured.\nEnvironments let you define variables like {{baseUrl}} to reuse across requests.\n[New Environment](command:curl-code.newEnvironment)"
+      }
+    ],
     "commands": [
       {
         "command": "curl-code.newRequest",
