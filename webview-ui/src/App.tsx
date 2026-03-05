@@ -2,7 +2,7 @@
  * Main App component for curl-code webview
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { vscode } from './vscode';
 import { useRequestStore } from './state/requestStore';
 import { useResponseStore } from './state/responseStore';
@@ -12,12 +12,51 @@ import { ResponseViewer } from './components/ResponseViewer/ResponseViewer';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { EnvironmentPicker } from './components/common/EnvironmentPicker';
 
+type Layout = 'horizontal' | 'vertical';
+
 export default function App() {
   const { request, setRequest, isLoading, setLoading } = useRequestStore();
   const { response, error, setResponse, setError, clearResponse } =
     useResponseStore();
   const { setEnvironments } = useEnvironmentStore();
   const [isDirty, setIsDirty] = useState(false);
+  const [layout, setLayout] = useState<Layout>('horizontal');
+  const [splitRatio, setSplitRatio] = useState(50);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    let ratio: number;
+    if (layout === 'horizontal') {
+      ratio = ((e.clientY - rect.top) / rect.height) * 100;
+    } else {
+      ratio = ((e.clientX - rect.left) / rect.width) * 100;
+    }
+    setSplitRatio(Math.min(80, Math.max(20, ratio)));
+  }, [layout]);
+
+  const handleMouseUp = useCallback(() => {
+    isDragging.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseMove]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = layout === 'horizontal' ? 'row-resize' : 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [layout, handleMouseMove, handleMouseUp]);
+
+  const toggleLayout = () => {
+    setLayout((prev) => (prev === 'horizontal' ? 'vertical' : 'horizontal'));
+  };
 
   useEffect(() => {
     // Notify extension that webview is ready
@@ -102,27 +141,50 @@ export default function App() {
     );
   }
 
+  const sizeProp = layout === 'horizontal' ? 'height' : 'width';
+
   return (
     <div className="app-container">
-      <EnvironmentPicker />
-      <div className="request-panel">
-        <RequestBuilder
-          request={request}
-          onChange={handleChange}
-          onSend={handleSend}
-          onSave={handleSave}
-          onSaveAs={handleSaveAs}
-          onCopyAsCurl={handleCopyAsCurl}
-          isLoading={isLoading}
-          isDirty={isDirty}
-        />
+      <div className="app-top-bar">
+        <EnvironmentPicker />
+        <button
+          className="layout-toggle btn-icon"
+          onClick={toggleLayout}
+          title={layout === 'horizontal' ? 'Switch to side-by-side layout' : 'Switch to stacked layout'}
+        >
+          {layout === 'horizontal' ? '\u2B0C' : '\u2B0D'}
+        </button>
       </div>
-      <div className="response-panel">
-        {isLoading ? (
-          <LoadingSpinner onCancel={handleCancel} />
-        ) : (
-          <ResponseViewer response={response} error={error} />
-        )}
+      <div className={`panels-container ${layout}`} ref={containerRef}>
+        <div
+          className="request-panel"
+          style={{ [sizeProp]: `calc(${splitRatio}% - 3px)` }}
+        >
+          <RequestBuilder
+            request={request}
+            onChange={handleChange}
+            onSend={handleSend}
+            onSave={handleSave}
+            onSaveAs={handleSaveAs}
+            onCopyAsCurl={handleCopyAsCurl}
+            isLoading={isLoading}
+            isDirty={isDirty}
+          />
+        </div>
+        <div
+          className={`resize-handle ${layout}`}
+          onMouseDown={handleResizeStart}
+        />
+        <div
+          className="response-panel"
+          style={{ [sizeProp]: `calc(${100 - splitRatio}% - 3px)` }}
+        >
+          {isLoading ? (
+            <LoadingSpinner onCancel={handleCancel} />
+          ) : (
+            <ResponseViewer response={response} error={error} />
+          )}
+        </div>
       </div>
     </div>
   );
