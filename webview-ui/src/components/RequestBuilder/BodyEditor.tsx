@@ -1,10 +1,11 @@
 /**
- * Request body editor component
+ * Request body editor component — powered by Monaco Editor
  */
 
-import { useMemo, useRef, useCallback } from 'react';
+import { useCallback, useRef } from 'react';
+import Editor, { type OnMount } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import type { HttpBody } from '../../vscode';
-import { highlightJson } from '../../utils/jsonHighlight';
 
 interface BodyEditorProps {
   body: HttpBody;
@@ -19,47 +20,45 @@ const BODY_TYPES: { value: HttpBody['type']; label: string }[] = [
   { value: 'form-data', label: 'Form Data' },
 ];
 
+/** Map body types to Monaco language identifiers */
+function bodyTypeToLanguage(type: HttpBody['type']): string {
+  switch (type) {
+    case 'json':
+      return 'json';
+    case 'x-www-form-urlencoded':
+      return 'plaintext';
+    case 'raw':
+      return 'plaintext';
+    default:
+      return 'plaintext';
+  }
+}
+
 export function BodyEditor({ body, onChange }: BodyEditorProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const highlightRef = useRef<HTMLPreElement>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const handleTypeChange = (type: HttpBody['type']) => {
     onChange({ ...body, type });
   };
 
-  const handleContentChange = (content: string) => {
-    onChange({ ...body, content });
+  const handleContentChange = useCallback(
+    (value: string | undefined) => {
+      onChange({ ...body, content: value ?? '' });
+    },
+    // body.type is stable across content edits so this won't over-fire
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onChange, body.type]
+  );
+
+  const handleEditorMount: OnMount = (editor) => {
+    editorRef.current = editor;
   };
 
   const formatJson = () => {
-    try {
-      const parsed = JSON.parse(body.content);
-      const formatted = JSON.stringify(parsed, null, 2);
-      onChange({ ...body, content: formatted });
-    } catch {
-      // Invalid JSON, do nothing
+    if (editorRef.current) {
+      editorRef.current.getAction('editor.action.formatDocument')?.run();
     }
   };
-
-  const syncScroll = useCallback(() => {
-    if (textareaRef.current && highlightRef.current) {
-      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-      highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    }
-  }, []);
-
-  const isJson = body.type === 'json';
-
-  const highlighted = useMemo(() => {
-    if (!isJson || !body.content) return null;
-    try {
-      return highlightJson(body.content);
-    } catch {
-      return null;
-    }
-  }, [body.content, isJson]);
-
-  const showHighlight = isJson && highlighted !== null;
 
   return (
     <div className="body-editor">
@@ -88,29 +87,32 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
       </div>
 
       {body.type !== 'none' && body.type !== 'form-data' && (
-        <div className={`body-input-wrapper${showHighlight ? ' has-highlight' : ''}`}>
-          {showHighlight && (
-            <pre
-              ref={highlightRef}
-              className="body-highlight-layer"
-              aria-hidden="true"
-              dangerouslySetInnerHTML={{ __html: highlighted + '\n' }}
-            />
-          )}
-          <textarea
-            ref={textareaRef}
-            className={showHighlight ? 'body-textarea-overlay' : undefined}
+        <div className="body-monaco-wrapper">
+          <Editor
             value={body.content}
-            onChange={(e) => handleContentChange(e.target.value)}
-            onScroll={showHighlight ? syncScroll : undefined}
-            placeholder={
-              body.type === 'json'
-                ? '{\n  "key": "value"\n}'
-                : body.type === 'x-www-form-urlencoded'
-                ? 'key=value&key2=value2'
-                : 'Enter request body'
-            }
-            spellCheck={false}
+            language={bodyTypeToLanguage(body.type)}
+            theme="vs-dark"
+            onChange={handleContentChange}
+            onMount={handleEditorMount}
+            options={{
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              fontSize: 12,
+              lineNumbers: 'on',
+              renderLineHighlight: 'none',
+              folding: true,
+              wordWrap: 'on',
+              automaticLayout: true,
+              tabSize: 2,
+              padding: { top: 8 },
+              overviewRulerLanes: 0,
+              hideCursorInOverviewRuler: true,
+              overviewRulerBorder: false,
+              scrollbar: {
+                verticalScrollbarSize: 10,
+                horizontalScrollbarSize: 10,
+              },
+            }}
           />
         </div>
       )}

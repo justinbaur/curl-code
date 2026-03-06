@@ -136,15 +136,12 @@ body {
   min-height: 0;
 }
 
-.body-input-wrapper {
+.body-monaco-wrapper {
   flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.body-editor textarea {
-  flex: 1 1 auto;
+  min-height: 120px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .response-viewer {
@@ -447,49 +444,6 @@ button:disabled {
   margin-bottom: 12px;
 }
 
-.body-editor textarea {
-  width: 100%;
-  min-height: 120px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  resize: vertical;
-}
-
-.body-input-wrapper {
-  position: relative;
-}
-
-.body-input-wrapper.has-highlight textarea {
-  resize: none;
-}
-
-.body-highlight-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  margin: 0;
-  padding: 4px 8px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow: auto;
-  pointer-events: none;
-  border: 1px solid transparent;
-  box-sizing: border-box;
-}
-
-.body-textarea-overlay {
-  color: transparent;
-  caret-color: var(--text-primary);
-  background: transparent;
-  line-height: 1.5;
-  padding: 4px 8px;
-  box-sizing: border-box;
-}
 
 /* Auth editor */
 .auth-type-selector {

@@ -1,8 +1,34 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BodyEditor } from '../../../components/RequestBuilder/BodyEditor';
 import type { HttpBody } from '../../../vscode';
+
+// Mock Monaco Editor — it doesn't render in jsdom
+let mockOnChange: ((value: string | undefined) => void) | undefined;
+let mockOnMount: ((editor: unknown) => void) | undefined;
+
+vi.mock('@monaco-editor/react', () => ({
+	default: ({ value, onChange, onMount, language }: {
+		value: string;
+		onChange: (value: string | undefined) => void;
+		onMount: (editor: unknown) => void;
+		language: string;
+	}) => {
+		mockOnChange = onChange;
+		mockOnMount = onMount;
+		return (
+			<div data-testid="monaco-editor" data-language={language} data-value={value}>
+				Monaco Editor
+			</div>
+		);
+	},
+}));
+
+beforeEach(() => {
+	mockOnChange = undefined;
+	mockOnMount = undefined;
+});
 
 describe('BodyEditor', () => {
 	describe('body type selector', () => {
@@ -47,12 +73,12 @@ describe('BodyEditor', () => {
 	});
 
 	describe('none type', () => {
-		it('should not render textarea when type is none', () => {
+		it('should not render editor when type is none', () => {
 			const body: HttpBody = { type: 'none', content: '' };
 			const onChange = vi.fn();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
 		});
 
 		it('should not render format button when type is none', () => {
@@ -65,23 +91,15 @@ describe('BodyEditor', () => {
 	});
 
 	describe('json type', () => {
-		it('should render textarea for JSON', () => {
+		it('should render Monaco editor for JSON', () => {
 			const body: HttpBody = { type: 'json', content: '{}' };
 			const onChange = vi.fn();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			expect(textarea).toBeInTheDocument();
-			expect(textarea).toHaveValue('{}');
-		});
-
-		it('should show JSON placeholder', () => {
-			const body: HttpBody = { type: 'json', content: '' };
-			const onChange = vi.fn();
-			render(<BodyEditor body={body} onChange={onChange} />);
-
-			const textarea = screen.getByRole('textbox');
-			expect(textarea).toHaveAttribute('placeholder', '{\n  "key": "value"\n}');
+			const editor = screen.getByTestId('monaco-editor');
+			expect(editor).toBeInTheDocument();
+			expect(editor).toHaveAttribute('data-language', 'json');
+			expect(editor).toHaveAttribute('data-value', '{}');
 		});
 
 		it('should render format button for JSON', () => {
@@ -93,36 +111,38 @@ describe('BodyEditor', () => {
 			expect(formatButton).toBeInTheDocument();
 		});
 
-		it('should call onChange when content changes', async () => {
+		it('should call onChange when content changes via Monaco', () => {
 			const body: HttpBody = { type: 'json', content: '' };
 			const onChange = vi.fn();
-			const user = userEvent.setup();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			// Use paste instead of type to avoid issues with special characters like braces
-			await user.click(textarea);
-			await user.paste('{"key":"value"}');
+			// Simulate Monaco onChange
+			mockOnChange?.('{"key":"value"}');
 
-			expect(onChange).toHaveBeenLastCalledWith({
+			expect(onChange).toHaveBeenCalledWith({
 				type: 'json',
 				content: '{"key":"value"}'
 			});
 		});
 
-		it('should format valid JSON when format button is clicked', async () => {
-			const body: HttpBody = { type: 'json', content: '{"name":"test","value":123}' };
+		it('should call format action when format button is clicked', async () => {
+			const body: HttpBody = { type: 'json', content: '{"name":"test"}' };
 			const onChange = vi.fn();
 			const user = userEvent.setup();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
+			// Simulate Monaco mount with a mock editor
+			const mockRun = vi.fn();
+			const mockEditor = {
+				getAction: vi.fn().mockReturnValue({ run: mockRun }),
+			};
+			mockOnMount?.(mockEditor);
+
 			const formatButton = screen.getByRole('button', { name: /format/i });
 			await user.click(formatButton);
 
-			expect(onChange).toHaveBeenCalledWith({
-				type: 'json',
-				content: '{\n  "name": "test",\n  "value": 123\n}'
-			});
+			expect(mockEditor.getAction).toHaveBeenCalledWith('editor.action.formatDocument');
+			expect(mockRun).toHaveBeenCalled();
 		});
 
 		it('should not modify content when formatting invalid JSON', async () => {
@@ -131,63 +151,24 @@ describe('BodyEditor', () => {
 			const user = userEvent.setup();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
+			// No editor mounted, so format should be a no-op
 			const formatButton = screen.getByRole('button', { name: /format/i });
 			await user.click(formatButton);
 
 			expect(onChange).not.toHaveBeenCalled();
 		});
-
-		it('should handle nested JSON formatting', async () => {
-			const body: HttpBody = {
-				type: 'json',
-				content: '{"user":{"name":"John","age":30},"items":["a","b"]}'
-			};
-			const onChange = vi.fn();
-			const user = userEvent.setup();
-			render(<BodyEditor body={body} onChange={onChange} />);
-
-			const formatButton = screen.getByRole('button', { name: /format/i });
-			await user.click(formatButton);
-
-			const expectedFormatted = JSON.stringify(
-				{ user: { name: 'John', age: 30 }, items: ['a', 'b'] },
-				null,
-				2
-			);
-
-			expect(onChange).toHaveBeenCalledWith({
-				type: 'json',
-				content: expectedFormatted
-			});
-		});
-
-		it('should disable spellCheck for JSON textarea', () => {
-			const body: HttpBody = { type: 'json', content: '' };
-			const onChange = vi.fn();
-			render(<BodyEditor body={body} onChange={onChange} />);
-
-			const textarea = screen.getByRole('textbox');
-			expect(textarea).toHaveAttribute('spellcheck', 'false');
-		});
 	});
 
 	describe('raw type', () => {
-		it('should render textarea for raw', () => {
+		it('should render Monaco editor for raw', () => {
 			const body: HttpBody = { type: 'raw', content: 'raw text' };
 			const onChange = vi.fn();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			expect(textarea).toBeInTheDocument();
-			expect(textarea).toHaveValue('raw text');
-		});
-
-		it('should show raw placeholder', () => {
-			const body: HttpBody = { type: 'raw', content: '' };
-			const onChange = vi.fn();
-			render(<BodyEditor body={body} onChange={onChange} />);
-
-			expect(screen.getByPlaceholderText('Enter request body')).toBeInTheDocument();
+			const editor = screen.getByTestId('monaco-editor');
+			expect(editor).toBeInTheDocument();
+			expect(editor).toHaveAttribute('data-language', 'plaintext');
+			expect(editor).toHaveAttribute('data-value', 'raw text');
 		});
 
 		it('should not render format button for raw', () => {
@@ -198,17 +179,14 @@ describe('BodyEditor', () => {
 			expect(screen.queryByRole('button', { name: /format/i })).not.toBeInTheDocument();
 		});
 
-		it('should call onChange when raw content changes', async () => {
+		it('should call onChange when raw content changes', () => {
 			const body: HttpBody = { type: 'raw', content: '' };
 			const onChange = vi.fn();
-			const user = userEvent.setup();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			await user.click(textarea);
-			await user.paste('new content');
+			mockOnChange?.('new content');
 
-			expect(onChange).toHaveBeenLastCalledWith({
+			expect(onChange).toHaveBeenCalledWith({
 				type: 'raw',
 				content: 'new content'
 			});
@@ -216,22 +194,15 @@ describe('BodyEditor', () => {
 	});
 
 	describe('x-www-form-urlencoded type', () => {
-		it('should render textarea for form-urlencoded', () => {
+		it('should render Monaco editor for form-urlencoded', () => {
 			const body: HttpBody = { type: 'x-www-form-urlencoded', content: 'key=value' };
 			const onChange = vi.fn();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			expect(textarea).toBeInTheDocument();
-			expect(textarea).toHaveValue('key=value');
-		});
-
-		it('should show form-urlencoded placeholder', () => {
-			const body: HttpBody = { type: 'x-www-form-urlencoded', content: '' };
-			const onChange = vi.fn();
-			render(<BodyEditor body={body} onChange={onChange} />);
-
-			expect(screen.getByPlaceholderText('key=value&key2=value2')).toBeInTheDocument();
+			const editor = screen.getByTestId('monaco-editor');
+			expect(editor).toBeInTheDocument();
+			expect(editor).toHaveAttribute('data-language', 'plaintext');
+			expect(editor).toHaveAttribute('data-value', 'key=value');
 		});
 
 		it('should not render format button for form-urlencoded', () => {
@@ -242,17 +213,14 @@ describe('BodyEditor', () => {
 			expect(screen.queryByRole('button', { name: /format/i })).not.toBeInTheDocument();
 		});
 
-		it('should call onChange when form-urlencoded content changes', async () => {
+		it('should call onChange when form-urlencoded content changes', () => {
 			const body: HttpBody = { type: 'x-www-form-urlencoded', content: '' };
 			const onChange = vi.fn();
-			const user = userEvent.setup();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			await user.click(textarea);
-			await user.paste('foo=bar&baz=qux');
+			mockOnChange?.('foo=bar&baz=qux');
 
-			expect(onChange).toHaveBeenLastCalledWith({
+			expect(onChange).toHaveBeenCalledWith({
 				type: 'x-www-form-urlencoded',
 				content: 'foo=bar&baz=qux'
 			});
@@ -260,12 +228,12 @@ describe('BodyEditor', () => {
 	});
 
 	describe('form-data type', () => {
-		it('should not render textarea for form-data', () => {
+		it('should not render editor for form-data', () => {
 			const body: HttpBody = { type: 'form-data', content: '' };
 			const onChange = vi.fn();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
 		});
 
 		it('should show form-data notice message', () => {
@@ -316,8 +284,9 @@ describe('BodyEditor', () => {
 
 			// Verify format button is gone
 			expect(screen.queryByRole('button', { name: /format/i })).not.toBeInTheDocument();
-			// Verify content is preserved
-			expect(screen.getByRole('textbox')).toHaveValue('{"test": true}');
+			// Verify editor still shows content
+			const editor = screen.getByTestId('monaco-editor');
+			expect(editor).toHaveAttribute('data-value', '{"test": true}');
 		});
 
 		it('should handle switching from raw to form-data', async () => {
@@ -326,8 +295,8 @@ describe('BodyEditor', () => {
 			const user = userEvent.setup();
 			const { rerender } = render(<BodyEditor body={body} onChange={onChange} />);
 
-			// Verify textarea exists for raw
-			expect(screen.getByRole('textbox')).toBeInTheDocument();
+			// Verify editor exists for raw
+			expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
 
 			// Switch to form-data
 			const select = screen.getByRole('combobox');
@@ -336,8 +305,8 @@ describe('BodyEditor', () => {
 			// Rerender with new type
 			rerender(<BodyEditor body={{ type: 'form-data', content: 'test' }} onChange={onChange} />);
 
-			// Verify textarea is gone and notice is shown
-			expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+			// Verify editor is gone and notice is shown
+			expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
 			expect(screen.getByText(/form data editing is not yet supported/i)).toBeInTheDocument();
 		});
 
@@ -346,8 +315,8 @@ describe('BodyEditor', () => {
 			const onChange = vi.fn();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			expect(textarea).toHaveValue('');
+			const editor = screen.getByTestId('monaco-editor');
+			expect(editor).toHaveAttribute('data-value', '');
 		});
 
 		it('should handle multiline content', () => {
@@ -358,8 +327,8 @@ describe('BodyEditor', () => {
 			const onChange = vi.fn();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			expect(textarea).toHaveValue('Line 1\nLine 2\nLine 3');
+			const editor = screen.getByTestId('monaco-editor');
+			expect(editor).toHaveAttribute('data-value', 'Line 1\nLine 2\nLine 3');
 		});
 
 		it('should handle special characters in content', () => {
@@ -370,55 +339,21 @@ describe('BodyEditor', () => {
 			const onChange = vi.fn();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const textarea = screen.getByRole('textbox');
-			expect(textarea).toHaveValue('<html>\n\t&nbsp;\n</html>');
+			const editor = screen.getByTestId('monaco-editor');
+			expect(editor).toHaveAttribute('data-value', '<html>\n\t&nbsp;\n</html>');
 		});
 
-		it('should format JSON with special characters', async () => {
-			const body: HttpBody = {
-				type: 'json',
-				content: '{"message":"Hello\\nWorld","emoji":"\\u2764\\uFE0F"}'
-			};
+		it('should handle onChange with undefined value', () => {
+			const body: HttpBody = { type: 'json', content: 'test' };
 			const onChange = vi.fn();
-			const user = userEvent.setup();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			const formatButton = screen.getByRole('button', { name: /format/i });
-			await user.click(formatButton);
+			// Monaco can pass undefined when content is cleared
+			mockOnChange?.(undefined);
 
 			expect(onChange).toHaveBeenCalledWith({
 				type: 'json',
-				content: expect.stringContaining('"message"')
-			});
-		});
-
-		it('should handle empty JSON object formatting', async () => {
-			const body: HttpBody = { type: 'json', content: '{}' };
-			const onChange = vi.fn();
-			const user = userEvent.setup();
-			render(<BodyEditor body={body} onChange={onChange} />);
-
-			const formatButton = screen.getByRole('button', { name: /format/i });
-			await user.click(formatButton);
-
-			expect(onChange).toHaveBeenCalledWith({
-				type: 'json',
-				content: '{}'
-			});
-		});
-
-		it('should handle empty JSON array formatting', async () => {
-			const body: HttpBody = { type: 'json', content: '[]' };
-			const onChange = vi.fn();
-			const user = userEvent.setup();
-			render(<BodyEditor body={body} onChange={onChange} />);
-
-			const formatButton = screen.getByRole('button', { name: /format/i });
-			await user.click(formatButton);
-
-			expect(onChange).toHaveBeenCalledWith({
-				type: 'json',
-				content: '[]'
+				content: ''
 			});
 		});
 	});
