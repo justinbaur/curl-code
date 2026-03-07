@@ -153,6 +153,9 @@ export default function App() {
           title={layout === 'horizontal' ? 'Switch to side-by-side layout' : 'Switch to stacked layout'}
         >
           {layout === 'horizontal' ? '\u2B0C' : '\u2B0D'}
+          <span className="layout-toggle-label">
+            {layout === 'horizontal' ? 'Stacked' : 'Side by Side'}
+          </span>
         </button>
       </div>
       <div className={`panels-container ${layout}`} ref={containerRef}>
