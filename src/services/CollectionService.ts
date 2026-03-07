@@ -394,6 +394,17 @@ export class CollectionService {
     /**
      * Find a folder by ID within a collection
      */
+    /**
+     * Find which collection contains a given folder by ID
+     */
+    findCollectionForFolder(folderId: string): { collection: Collection; folder: Folder } | undefined {
+        for (const collection of this.collections) {
+            const folder = this.findFolder(collection, folderId);
+            if (folder) return { collection, folder };
+        }
+        return undefined;
+    }
+
     private findFolder(collection: Collection, folderId: string): Folder | undefined {
         const search = (folders: Folder[]): Folder | undefined => {
             for (const folder of folders) {

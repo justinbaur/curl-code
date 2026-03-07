@@ -9,6 +9,7 @@ import { HistoryTreeProvider } from './providers/HistoryTreeProvider';
 import { EnvironmentTreeProvider } from './providers/EnvironmentTreeProvider';
 import { HttpFileCodeLensProvider } from './providers/HttpFileCodeLensProvider';
 import { RequestPanelManager } from './webview';
+import { RunnerPanelManager } from './webview/RunnerPanelManager';
 import { CollectionService } from './services/CollectionService';
 import { HistoryService } from './services/HistoryService';
 import { EnvironmentService } from './services/EnvironmentService';
@@ -21,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const logger = Logger.getInstance();
     logger.info('curl-code extension is now active');
 
-    // Initialize services
+    // Initialize services 
     const collectionService = new CollectionService(context);
     const historyService = new HistoryService(context);
     const environmentService = new EnvironmentService(context);
@@ -880,6 +881,35 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    // Initialize collection runner
+    const runnerExecutor = new CurlExecutor(environmentService, collectionService, envFileService);
+    const runnerPanelManager = new RunnerPanelManager(
+        context,
+        runnerExecutor,
+        collectionService,
+        historyService,
+        environmentService,
+        envFileService,
+        requestPanelManager
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('curl-code.runCollection', async (item) => {
+            if (item?.id) {
+                await runnerPanelManager.runCollection(item.id);
+            }
+        }),
+
+        vscode.commands.registerCommand('curl-code.runFolder', async (item) => {
+            if (item?.id) {
+                const result = collectionService.findCollectionForFolder(item.id);
+                if (result) {
+                    await runnerPanelManager.runCollection(result.collection.id, item.id);
+                }
+            }
+        })
+    );
+
     // Register CodeLens provider for .http files
     const codeLensProvider = new HttpFileCodeLensProvider();
     context.subscriptions.push(
@@ -895,6 +925,7 @@ export async function activate(context: vscode.ExtensionContext) {
         historyView,
         environmentView,
         requestPanelManager,
+        runnerPanelManager,
         statusBarItem,
         envFileService,
         {

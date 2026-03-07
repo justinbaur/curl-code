@@ -1,0 +1,880 @@
+/**
+ * Runner webview styles — Postman-style split-pane layout
+ */
+
+:root {
+  --app-background: var(--vscode-editor-background, #1e1e1e);
+  --panel-background: var(--vscode-sideBar-background, #252526);
+  --border-color: var(--vscode-panel-border, #454545);
+  --text-primary: var(--vscode-editor-foreground, #d4d4d4);
+  --text-secondary: var(--vscode-descriptionForeground, #858585);
+  --input-background: var(--vscode-input-background, #3c3c3c);
+  --input-border: var(--vscode-input-border, #3c3c3c);
+  --input-foreground: var(--vscode-input-foreground, #d4d4d4);
+  --button-background: var(--vscode-button-background, #0e639c);
+  --button-foreground: var(--vscode-button-foreground, #ffffff);
+  --button-hover: var(--vscode-button-hoverBackground, #1177bb);
+  --button-secondary-background: var(--vscode-button-secondaryBackground, #3a3d41);
+  --button-secondary-foreground: var(--vscode-button-secondaryForeground, #d4d4d4);
+  --accent-color: var(--vscode-focusBorder, #007fd4);
+  --success-color: var(--vscode-testing-iconPassed, #73c991);
+  --error-color: var(--vscode-testing-iconFailed, #f14c4c);
+  --warning-color: var(--vscode-editorWarning-foreground, #cca700);
+  --info-color: var(--vscode-editorInfo-foreground, #3794ff);
+  --font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  --font-size: var(--vscode-font-size, 13px);
+  --font-mono: var(--vscode-editor-font-family, 'SF Mono', Monaco, 'Courier New', monospace);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  color: var(--text-primary);
+  background-color: var(--app-background);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Runner App — full-height flex container
+   ============================================================ */
+.runner-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Results layout — takes full height when visible
+   ============================================================ */
+.runner-results-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Runner Config — scrollable form (pre-run)
+   ============================================================ */
+.runner-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.runner-config-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.runner-config-env {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--panel-background);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.runner-config-env-label {
+  color: var(--text-secondary);
+}
+
+.runner-config-env-value {
+  color: var(--info-color);
+  font-weight: 500;
+}
+
+.runner-config-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel-background);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.runner-config-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.runner-config-option span {
+  color: var(--text-primary);
+}
+
+.runner-config-checkbox {
+  justify-content: flex-start;
+}
+
+.runner-config-checkbox input[type="checkbox"] {
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+
+.runner-config-input {
+  width: 100px;
+  padding: 4px 8px;
+  background: var(--input-background);
+  border: 1px solid var(--input-border);
+  color: var(--input-foreground);
+  border-radius: 3px;
+  font-size: var(--font-size);
+}
+
+.runner-config-input:focus {
+  outline: 1px solid var(--accent-color);
+}
+
+.runner-config-requests {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.runner-config-requests-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--panel-background);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.runner-config-requests-header span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.runner-config-request-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.runner-config-request-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.runner-config-request-item:last-child {
+  border-bottom: none;
+}
+
+.runner-config-request-item:hover {
+  background: var(--panel-background);
+}
+
+.runner-config-request-item input[type="checkbox"] {
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+
+.runner-start-btn {
+  padding: 8px 16px;
+  background: var(--button-background);
+  color: var(--button-foreground);
+  border: none;
+  border-radius: 4px;
+  font-size: var(--font-size);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.runner-start-btn:hover:not(:disabled) {
+  background: var(--button-hover);
+}
+
+.runner-start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   HTTP Method badges
+   ============================================================ */
+.runner-method {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.runner-method-get { color: var(--success-color); }
+.runner-method-post { color: var(--warning-color); }
+.runner-method-put { color: var(--info-color); }
+.runner-method-patch { color: #cc6bdb; }
+.runner-method-delete { color: var(--error-color); }
+.runner-method-head { color: var(--success-color); }
+.runner-method-options { color: var(--text-secondary); }
+
+.runner-request-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runner-request-url {
+  color: var(--text-secondary);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 250px;
+}
+
+/* ============================================================
+   Runner Progress bar (during execution)
+   ============================================================ */
+.runner-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--panel-background);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.runner-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.runner-progress-text {
+  font-weight: 500;
+}
+
+.runner-progress-elapsed {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.runner-progress-bar-track {
+  height: 4px;
+  background: var(--input-background);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.runner-progress-bar-fill {
+  height: 100%;
+  background: var(--accent-color);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.runner-cancel-btn {
+  align-self: flex-start;
+  padding: 4px 12px;
+  background: var(--button-secondary-background);
+  color: var(--button-secondary-foreground);
+  border: none;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.runner-cancel-btn:hover {
+  background: var(--error-color);
+  color: #fff;
+}
+
+/* ============================================================
+   Runner Summary — Postman-style top bar with metadata + filters
+   ============================================================ */
+.runner-summary {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  background: var(--panel-background);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.runner-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.runner-summary-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.runner-summary-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.runner-summary-btn {
+  padding: 4px 14px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.runner-summary-btn-primary {
+  background: var(--button-background);
+  color: var(--button-foreground);
+}
+
+.runner-summary-btn-primary:hover {
+  background: var(--button-hover);
+}
+
+.runner-summary-btn-secondary {
+  background: var(--button-secondary-background);
+  color: var(--button-secondary-foreground);
+}
+
+.runner-summary-btn-secondary:hover {
+  background: var(--input-background);
+}
+
+.runner-summary-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.runner-summary-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.runner-summary-meta-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.runner-summary-meta-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.runner-summary-filters {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color);
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+
+.runner-filter-tab {
+  padding: 6px 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.runner-filter-tab:hover {
+  color: var(--text-primary);
+}
+
+.runner-filter-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-color);
+}
+
+.runner-filter-passed.active { border-bottom-color: var(--success-color); }
+.runner-filter-failed.active { border-bottom-color: var(--error-color); }
+.runner-filter-skipped.active { border-bottom-color: var(--warning-color); }
+
+/* ============================================================
+   Split pane layout
+   ============================================================ */
+.runner-split-pane {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.runner-split-left {
+  width: 380px;
+  min-width: 280px;
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.runner-split-right {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   Results list (left panel)
+   ============================================================ */
+.runner-results-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.runner-result-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.runner-result-item:last-child {
+  border-bottom: none;
+}
+
+.runner-result-item:hover {
+  background: var(--panel-background);
+}
+
+.runner-result-item.selected {
+  background: var(--panel-background);
+  border-left: 3px solid var(--accent-color);
+  padding-left: 9px;
+}
+
+.runner-result-item.running {
+  background: rgba(55, 148, 255, 0.05);
+}
+
+.runner-result-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+}
+
+.runner-result-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.runner-result-url {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runner-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.runner-status-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.runner-status-passed { color: var(--success-color); }
+.runner-status-failed { color: var(--error-color); }
+.runner-status-skipped { color: var(--warning-color); }
+.runner-status-running { color: var(--info-color); animation: pulse 1s ease-in-out infinite; }
+.runner-status-pending { color: var(--text-secondary); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.runner-result-status-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--success-color);
+  font-weight: 600;
+}
+
+.runner-result-status-code.error {
+  color: var(--error-color);
+}
+
+.runner-result-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.runner-result-open-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.runner-result-item:hover .runner-result-open-btn {
+  opacity: 1;
+}
+
+.runner-result-open-btn:hover {
+  color: var(--accent-color);
+}
+
+.runner-results-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ============================================================
+   Detail panel (right pane)
+   ============================================================ */
+.runner-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.runner-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.runner-detail-index {
+  background: var(--input-background);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+.runner-detail-breadcrumb {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runner-detail-breadcrumb strong {
+  color: var(--text-primary);
+}
+
+.runner-detail-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.runner-detail-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.runner-detail-tab:hover {
+  color: var(--text-primary);
+}
+
+.runner-detail-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-color);
+}
+
+.runner-detail-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.runner-detail-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Status bar in response tab */
+.runner-detail-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.runner-detail-status {
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.runner-detail-status.success { color: var(--success-color); }
+.runner-detail-status.error { color: var(--error-color); }
+
+.runner-detail-timing {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.runner-detail-size {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Toolbar (Pretty/Raw selector) */
+.runner-detail-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.runner-detail-view-select {
+  padding: 3px 8px;
+  background: var(--input-background);
+  color: var(--input-foreground);
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.runner-detail-view-select:focus {
+  outline: 1px solid var(--accent-color);
+}
+
+/* Pre-formatted code blocks */
+.runner-detail-pre {
+  background: var(--input-background);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: auto;
+  white-space: pre;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.runner-detail-body {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.runner-line-number {
+  display: inline-block;
+  width: 40px;
+  text-align: right;
+  padding-right: 12px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  user-select: none;
+  font-size: 12px;
+}
+
+.runner-detail-error {
+  padding: 16px;
+}
+
+.runner-detail-error-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--error-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.runner-detail-error-pre {
+  color: var(--error-color);
+  border-left: 3px solid var(--error-color);
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.runner-detail-hint {
+  padding: 24px 16px;
+  color: var(--text-secondary);
+  font-style: italic;
+  text-align: center;
+}
+
+.runner-detail-empty {
+  padding: 24px 16px;
+  color: var(--text-secondary);
+  font-style: italic;
+  text-align: center;
+}
+
+/* Headers table */
+.runner-detail-headers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.runner-detail-headers-table th {
+  text-align: left;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-background);
+  position: sticky;
+  top: 0;
+}
+
+.runner-detail-headers-table td {
+  padding: 5px 16px;
+  border-bottom: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.runner-detail-header-key {
+  color: var(--info-color);
+  white-space: nowrap;
+}
+
+.runner-detail-header-value {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* Request tab */
+.runner-detail-request-info {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.runner-detail-request-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.runner-detail-request-curl {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.runner-detail-request-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.runner-detail-request-value {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.runner-detail-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.runner-detail-curl-pre {
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ============================================================
+   JSON syntax highlighting
+   ============================================================ */
+.json-key { color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe); }
+.json-string { color: var(--vscode-debugTokenExpression-string, #ce9178); }
+.json-number { color: var(--vscode-debugTokenExpression-number, #b5cea8); }
+.json-boolean { color: var(--vscode-debugTokenExpression-boolean, #569cd6); }
+.json-null { color: var(--vscode-debugTokenExpression-null, #569cd6); }
+.json-punctuation { color: var(--text-secondary); }

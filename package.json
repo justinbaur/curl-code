@@ -2,7 +2,7 @@
   "name": "curl-code",
   "displayName": "curl-code",
   "description": "HTTP client using cURL backend for VS Code",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "publisher": "JustinBaur",
   "license": "MIT",
   "private": true,
@@ -48,7 +48,7 @@
     "test:coverage:extension": "c8 --reporter=text --reporter=lcov --reporter=html-spa --report-dir=coverage/extension node ./out/test/runTest.js",
     "test:coverage": "npm run test:coverage:unit && npm run test:coverage:extension",
     "test:coverage:all": "npm run test:coverage && cd webview-ui && npm run test:coverage",
-    "build:webview": "cd webview-ui && npm run build",
+    "build:webview": "cd webview-ui && npm run build && npm run build:runner",
     "build:all": "npm run build:webview && npm run compile",
     "package:vsix": "vsce package",
     "deploy": "vsce publish"
@@ -275,6 +275,18 @@
         "title": "Open .env File",
         "icon": "$(go-to-file)",
         "category": "curl-code"
+      },
+      {
+        "command": "curl-code.runCollection",
+        "title": "Run Collection",
+        "icon": "$(run-all)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.runFolder",
+        "title": "Run Folder",
+        "icon": "$(run-all)",
+        "category": "curl-code"
       }
     ],
     "menus": {
@@ -332,6 +344,24 @@
         {
           "command": "curl-code.deleteCollection",
           "when": "view == curl-code.collections && viewItem == collection"
+        },
+        {
+          "command": "curl-code.runCollection",
+          "when": "view == curl-code.collections && viewItem == collection",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.runCollection",
+          "when": "view == curl-code.collections && viewItem == collection"
+        },
+        {
+          "command": "curl-code.runFolder",
+          "when": "view == curl-code.collections && viewItem == folder",
+          "group": "inline"
+        },
+        {
+          "command": "curl-code.runFolder",
+          "when": "view == curl-code.collections && viewItem == folder"
         },
         {
           "command": "curl-code.deleteRequest",

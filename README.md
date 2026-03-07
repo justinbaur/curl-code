@@ -6,6 +6,12 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 
 ![showcase example](media/curl-code-showcase.png)
 
+## Requirements
+
+- cURL must be installed on your system
+- Most systems have cURL pre-installed
+- Download from: https://curl.se/download.html
+
 ## Features
 
 - **Full REST Client**: Support for GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS
@@ -20,6 +26,7 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 - **Response Viewer**: Body, Headers, cURL command, and verbose Log tabs with syntax highlighting
 - **Resizable Layout**: Drag to resize request/response panels with horizontal or vertical orientation
 - **Copy as cURL**: Export any request as a cURL command
+- **Collection Runner**: Batch-run all requests in a collection or folder with a split-pane results view
 
 ## Settings
 
@@ -29,12 +36,6 @@ A full-featured HTTP client for VS Code with a clean UI and cURL backend.
 - `curl-code.verifySSL`: Verify SSL certificates (default: true)
 - `curl-code.saveRequestHistory`: Save request history (default: true)
 - `curl-code.maxHistoryItems`: Maximum history items (default: 50)
-
-## Requirements
-
-- cURL must be installed on your system
-- Most systems have cURL pre-installed
-- Download from: https://curl.se/download.html
 
 ## Quick Start
 
@@ -212,3 +213,34 @@ The request editor supports built-in authentication methods:
 Additional authentication methods are available in the [Advanced cURL Flags](#advanced-curl-flags) under **Auth Extensions**: Digest, NTLM, Negotiate/SPNEGO, AWS Sigv4, and OAuth2 Bearer.
 
 Authentication fields support `{{variable}}` interpolation, so you can store credentials in your environment.
+
+## Collection Runner
+
+Run all requests in a collection or folder sequentially and inspect results in a Postman-style split-pane interface.
+
+### Starting a Run
+
+Right-click a collection or folder in the sidebar and select **Run Collection** or **Run Folder**. A configuration panel lets you:
+
+- **Select requests**: Check/uncheck individual requests to include or exclude
+- **Delay between requests**: Add a pause (in ms) between each request
+- **Stop on error**: Halt the run if any request fails
+- **Persist responses**: Store full response bodies and headers for inspection
+
+### Results View
+
+After the run starts, results appear in a split-pane layout:
+
+- **Left panel**: Scrollable list of requests with status icons, method badges, status codes, and response times. Click a request to view its details.
+- **Right panel**: Detailed view of the selected request with three tabs:
+  - **Response**: Status bar (code, time, size), Pretty/Raw toggle, syntax-highlighted JSON with line numbers
+  - **Headers**: Response headers in a key-value table
+  - **Request**: Method, URL, and the cURL command that was executed
+
+### Summary Bar
+
+When a run completes, a summary bar shows run metadata (Source, Environment, Duration, Avg. Response Time) and filter tabs — All Requests, Passed, Failed, Skipped — to narrow the results list. Use **Run Again** to re-execute with the same config or **New Run** to return to the configuration screen.
+
+### During Execution
+
+A progress bar tracks the current request count and elapsed time. Click **Cancel Run** to abort — remaining requests are marked as skipped.
