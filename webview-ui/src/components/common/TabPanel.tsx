@@ -13,9 +13,10 @@ interface TabPanelProps {
   tabs: Tab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  rightContent?: React.ReactNode;
 }
 
-export function TabPanel({ tabs, activeTab, onTabChange }: TabPanelProps) {
+export function TabPanel({ tabs, activeTab, onTabChange, rightContent }: TabPanelProps) {
   return (
     <div className="tab-panel">
       {tabs.map((tab) => (
@@ -31,6 +32,7 @@ export function TabPanel({ tabs, activeTab, onTabChange }: TabPanelProps) {
           )}
         </button>
       ))}
+      {rightContent && <div className="tab-panel-right">{rightContent}</div>}
     </div>
   );
 }

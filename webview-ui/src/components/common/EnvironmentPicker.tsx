@@ -17,7 +17,14 @@ export function EnvironmentPicker() {
   };
 
   if (environments.length === 0) {
-    return null;
+    return (
+      <div className="environment-picker">
+        <span className="environment-label">
+          <span className="codicon codicon-globe"></span>
+          No Environments
+        </span>
+      </div>
+    );
   }
 
   const activeEnv = environments.find((env) => env.id === activeEnvironmentId);

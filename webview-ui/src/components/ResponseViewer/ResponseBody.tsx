@@ -8,9 +8,10 @@ import { escapeHtml, highlightJson } from '../../utils/jsonHighlight';
 interface ResponseBodyProps {
   body: string;
   contentType: string;
+  wordWrap: boolean;
 }
 
-export function ResponseBody({ body, contentType }: ResponseBodyProps) {
+export function ResponseBody({ body, contentType, wordWrap }: ResponseBodyProps) {
   const isJson = contentType.includes('application/json');
 
   const formattedBody = useMemo(() => {
@@ -47,9 +48,9 @@ export function ResponseBody({ body, contentType }: ResponseBodyProps) {
   return (
     <div className="response-body">
       {highlightedBody ? (
-        <pre dangerouslySetInnerHTML={{ __html: highlightedBody }} />
+        <pre className={wordWrap ? 'wrap' : ''} dangerouslySetInnerHTML={{ __html: highlightedBody }} />
       ) : (
-        <pre>{formattedBody}</pre>
+        <pre className={wordWrap ? 'wrap' : ''}>{formattedBody}</pre>
       )}
     </div>
   );

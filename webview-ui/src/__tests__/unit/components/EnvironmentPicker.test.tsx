@@ -26,15 +26,15 @@ describe('EnvironmentPicker', () => {
 	});
 
 	describe('rendering', () => {
-		it('should not render when no environments exist', () => {
+		it('should render "No Environments" label when no environments exist', () => {
 			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
 				environments: [],
 				activeEnvironmentId: null,
 			} as any);
 
-			const { container } = render(<EnvironmentPicker />);
+			render(<EnvironmentPicker />);
 
-			expect(container.firstChild).toBeNull();
+			expect(screen.getByText('No Environments')).toBeInTheDocument();
 		});
 
 		it('should render select when environments exist', () => {

@@ -5,26 +5,26 @@ import { ResponseBody } from '../../../components/ResponseViewer/ResponseBody';
 describe('ResponseBody', () => {
 	describe('rendering', () => {
 		it('should render empty state when body is empty string', () => {
-			render(<ResponseBody body="" contentType="text/plain" />);
+			render(<ResponseBody body="" contentType="text/plain" wordWrap={false} />);
 
 			expect(screen.getByText('No response body')).toBeInTheDocument();
 		});
 
 		it('should render body in pre tag when body exists', () => {
-			render(<ResponseBody body="Hello World" contentType="text/plain" />);
+			render(<ResponseBody body="Hello World" contentType="text/plain" wordWrap={false} />);
 
 			const pre = screen.getByText('Hello World');
 			expect(pre.tagName).toBe('PRE');
 		});
 
 		it('should apply response-body class to container', () => {
-			const { container } = render(<ResponseBody body="test" contentType="text/plain" />);
+			const { container } = render(<ResponseBody body="test" contentType="text/plain" wordWrap={false} />);
 
 			expect(container.querySelector('.response-body')).toBeInTheDocument();
 		});
 
 		it('should apply empty-state class when no body', () => {
-			const { container } = render(<ResponseBody body="" contentType="text/plain" />);
+			const { container } = render(<ResponseBody body="" contentType="text/plain" wordWrap={false} />);
 
 			expect(container.querySelector('.empty-state')).toBeInTheDocument();
 		});
@@ -33,7 +33,7 @@ describe('ResponseBody', () => {
 	describe('JSON formatting', () => {
 		it('should format valid JSON when content type is application/json', () => {
 			const json = '{"name":"John","age":30}';
-			const { container } = render(<ResponseBody body={json} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify({ name: 'John', age: 30 }, null, 2);
 			const pre = container.querySelector('pre');
@@ -42,7 +42,7 @@ describe('ResponseBody', () => {
 
 		it('should format nested JSON correctly', () => {
 			const json = '{"user":{"name":"Jane","address":{"city":"NYC"}}}';
-			const { container } = render(<ResponseBody body={json} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify(
 				{ user: { name: 'Jane', address: { city: 'NYC' } } },
@@ -55,7 +55,7 @@ describe('ResponseBody', () => {
 
 		it('should format JSON arrays', () => {
 			const json = '[{"id":1},{"id":2},{"id":3}]';
-			const { container } = render(<ResponseBody body={json} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify([{ id: 1 }, { id: 2 }, { id: 3 }], null, 2);
 			const pre = container.querySelector('pre');
@@ -64,7 +64,7 @@ describe('ResponseBody', () => {
 
 		it('should handle content type with charset (application/json; charset=utf-8)', () => {
 			const json = '{"status":"ok"}';
-			const { container } = render(<ResponseBody body={json} contentType="application/json; charset=utf-8" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json; charset=utf-8" wordWrap={false} />);
 
 			const expected = JSON.stringify({ status: 'ok' }, null, 2);
 			const pre = container.querySelector('pre');
@@ -73,7 +73,7 @@ describe('ResponseBody', () => {
 
 		it('should not format when content type is not JSON', () => {
 			const text = '{"this":"looks like json"}';
-			render(<ResponseBody body={text} contentType="text/plain" />);
+			render(<ResponseBody body={text} contentType="text/plain" wordWrap={false} />);
 
 			// Should render as-is, not formatted
 			expect(screen.getByText(text)).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe('ResponseBody', () => {
 
 		it('should handle invalid JSON gracefully', () => {
 			const invalidJson = '{invalid json content}';
-			render(<ResponseBody body={invalidJson} contentType="application/json" />);
+			render(<ResponseBody body={invalidJson} contentType="application/json" wordWrap={false} />);
 
 			// Should render as-is when JSON parsing fails
 			expect(screen.getByText(invalidJson)).toBeInTheDocument();
@@ -89,21 +89,21 @@ describe('ResponseBody', () => {
 
 		it('should handle empty JSON object', () => {
 			const json = '{}';
-			render(<ResponseBody body={json} contentType="application/json" />);
+			render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			expect(screen.getByText('{}' )).toBeInTheDocument();
 		});
 
 		it('should handle empty JSON array', () => {
 			const json = '[]';
-			render(<ResponseBody body={json} contentType="application/json" />);
+			render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			expect(screen.getByText('[]')).toBeInTheDocument();
 		});
 
 		it('should preserve JSON formatting with special characters', () => {
 			const json = '{"message":"Hello\\nWorld","emoji":"😀"}';
-			const { container } = render(<ResponseBody body={json} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify({ message: 'Hello\nWorld', emoji: '😀' }, null, 2);
 			const pre = container.querySelector('pre');
@@ -114,7 +114,7 @@ describe('ResponseBody', () => {
 	describe('content type handling', () => {
 		it('should handle application/json', () => {
 			const json = '{"test":true}';
-			const { container } = render(<ResponseBody body={json} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify({ test: true }, null, 2);
 			const pre = container.querySelector('pre');
@@ -123,35 +123,35 @@ describe('ResponseBody', () => {
 
 		it('should handle text/plain without formatting', () => {
 			const text = 'Plain text response';
-			render(<ResponseBody body={text} contentType="text/plain" />);
+			render(<ResponseBody body={text} contentType="text/plain" wordWrap={false} />);
 
 			expect(screen.getByText('Plain text response')).toBeInTheDocument();
 		});
 
 		it('should handle text/html without formatting', () => {
 			const html = '<html><body>Hello</body></html>';
-			render(<ResponseBody body={html} contentType="text/html" />);
+			render(<ResponseBody body={html} contentType="text/html" wordWrap={false} />);
 
 			expect(screen.getByText(html)).toBeInTheDocument();
 		});
 
 		it('should handle text/xml without formatting', () => {
 			const xml = '<root><item>Test</item></root>';
-			render(<ResponseBody body={xml} contentType="text/xml" />);
+			render(<ResponseBody body={xml} contentType="text/xml" wordWrap={false} />);
 
 			expect(screen.getByText(xml)).toBeInTheDocument();
 		});
 
 		it('should handle empty content type', () => {
 			const text = 'Some content';
-			render(<ResponseBody body={text} contentType="" />);
+			render(<ResponseBody body={text} contentType="" wordWrap={false} />);
 
 			expect(screen.getByText('Some content')).toBeInTheDocument();
 		});
 
 		it('should handle uppercase content type', () => {
 			const json = '{"status":"ok"}';
-			render(<ResponseBody body={json} contentType="APPLICATION/JSON" />);
+			render(<ResponseBody body={json} contentType="APPLICATION/JSON" wordWrap={false} />);
 
 			// Should not format because check is case-sensitive
 			expect(screen.getByText(json)).toBeInTheDocument();
@@ -161,14 +161,14 @@ describe('ResponseBody', () => {
 	describe('edge cases', () => {
 		it('should handle very long body', () => {
 			const longBody = 'a'.repeat(10000);
-			render(<ResponseBody body={longBody} contentType="text/plain" />);
+			render(<ResponseBody body={longBody} contentType="text/plain" wordWrap={false} />);
 
 			expect(screen.getByText(longBody)).toBeInTheDocument();
 		});
 
 		it('should handle multiline plain text', () => {
 			const multiline = 'Line 1\nLine 2\nLine 3';
-			const { container } = render(<ResponseBody body={multiline} contentType="text/plain" />);
+			const { container } = render(<ResponseBody body={multiline} contentType="text/plain" wordWrap={false} />);
 
 			const pre = container.querySelector('pre');
 			expect(pre?.textContent).toBe(multiline);
@@ -176,7 +176,7 @@ describe('ResponseBody', () => {
 
 		it('should handle body with only whitespace', () => {
 			const whitespace = '   \n\t  ';
-			const { container } = render(<ResponseBody body={whitespace} contentType="text/plain" />);
+			const { container } = render(<ResponseBody body={whitespace} contentType="text/plain" wordWrap={false} />);
 
 			const pre = container.querySelector('pre');
 			expect(pre?.textContent).toBe(whitespace);
@@ -191,7 +191,7 @@ describe('ResponseBody', () => {
 				})),
 			});
 
-			const { container } = render(<ResponseBody body={largeJson} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={largeJson} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify(JSON.parse(largeJson), null, 2);
 			const pre = container.querySelector('pre');
@@ -200,7 +200,7 @@ describe('ResponseBody', () => {
 
 		it('should handle deeply nested JSON', () => {
 			const deepJson = '{"a":{"b":{"c":{"d":{"e":"value"}}}}}';
-			const { container } = render(<ResponseBody body={deepJson} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={deepJson} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify(
 				{ a: { b: { c: { d: { e: 'value' } } } } },
@@ -213,7 +213,7 @@ describe('ResponseBody', () => {
 
 		it('should handle JSON with null values', () => {
 			const json = '{"name":"test","value":null}';
-			const { container } = render(<ResponseBody body={json} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify({ name: 'test', value: null }, null, 2);
 			const pre = container.querySelector('pre');
@@ -222,7 +222,7 @@ describe('ResponseBody', () => {
 
 		it('should handle JSON with boolean values', () => {
 			const json = '{"active":true,"verified":false}';
-			const { container } = render(<ResponseBody body={json} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify({ active: true, verified: false }, null, 2);
 			const pre = container.querySelector('pre');
@@ -231,7 +231,7 @@ describe('ResponseBody', () => {
 
 		it('should handle JSON with number values', () => {
 			const json = '{"count":42,"price":19.99,"negative":-5}';
-			const { container } = render(<ResponseBody body={json} contentType="application/json" />);
+			const { container } = render(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const expected = JSON.stringify(
 				{ count: 42, price: 19.99, negative: -5 },
@@ -247,7 +247,7 @@ describe('ResponseBody', () => {
 		it('should escape HTML tags in malformed JSON response body', () => {
 			const malicious = '<img src=x onerror=alert(1)>';
 			const { container } = render(
-				<ResponseBody body={malicious} contentType="application/json" />
+				<ResponseBody body={malicious} contentType="application/json" wordWrap={false} />
 			);
 
 			const pre = container.querySelector('pre');
@@ -259,7 +259,7 @@ describe('ResponseBody', () => {
 		it('should escape script tags in JSON response body', () => {
 			const malicious = '<script>document.location="https://evil.com"</script>';
 			const { container } = render(
-				<ResponseBody body={malicious} contentType="application/json" />
+				<ResponseBody body={malicious} contentType="application/json" wordWrap={false} />
 			);
 
 			const pre = container.querySelector('pre');
@@ -269,7 +269,7 @@ describe('ResponseBody', () => {
 		it('should escape HTML inside valid JSON string values', () => {
 			const json = '{"html":"<b>bold</b>"}';
 			const { container } = render(
-				<ResponseBody body={json} contentType="application/json" />
+				<ResponseBody body={json} contentType="application/json" wordWrap={false} />
 			);
 
 			const pre = container.querySelector('pre');
@@ -282,13 +282,13 @@ describe('ResponseBody', () => {
 		it('should not reformat when neither body nor contentType changes', () => {
 			const json = '{"test":"value"}';
 			const { rerender } = render(
-				<ResponseBody body={json} contentType="application/json" />
+				<ResponseBody body={json} contentType="application/json" wordWrap={false} />
 			);
 
 			const firstRender = screen.getByText(/test/).textContent;
 
 			// Rerender with same props
-			rerender(<ResponseBody body={json} contentType="application/json" />);
+			rerender(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			const secondRender = screen.getByText(/test/).textContent;
 
@@ -298,13 +298,13 @@ describe('ResponseBody', () => {
 		it('should reformat when contentType changes', () => {
 			const json = '{"test":"value"}';
 			const { rerender, container } = render(
-				<ResponseBody body={json} contentType="text/plain" />
+				<ResponseBody body={json} contentType="text/plain" wordWrap={false} />
 			);
 
 			// Should render as-is
 			expect(screen.getByText(json)).toBeInTheDocument();
 
-			rerender(<ResponseBody body={json} contentType="application/json" />);
+			rerender(<ResponseBody body={json} contentType="application/json" wordWrap={false} />);
 
 			// Should now be formatted
 			const expected = JSON.stringify({ test: 'value' }, null, 2);

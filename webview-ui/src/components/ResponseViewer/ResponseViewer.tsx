@@ -19,6 +19,7 @@ type TabId = 'body' | 'headers' | 'curl' | 'log';
 
 export function ResponseViewer({ response, error }: ResponseViewerProps) {
   const [activeTab, setActiveTab] = useState<TabId>('body');
+  const [wordWrap, setWordWrap] = useState(false);
 
   if (error) {
     return (
@@ -60,11 +61,23 @@ export function ResponseViewer({ response, error }: ResponseViewerProps) {
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as TabId)}
+        rightContent={
+          activeTab === 'body' && (
+            <label className="wrap-toggle">
+              <input
+                type="checkbox"
+                checked={wordWrap}
+                onChange={(e) => setWordWrap(e.target.checked)}
+              />
+              Wrap Text
+            </label>
+          )
+        }
       />
 
       <div className="tab-content">
         {activeTab === 'body' && (
-          <ResponseBody body={response.body} contentType={response.contentType} />
+          <ResponseBody body={response.body} contentType={response.contentType} wordWrap={wordWrap} />
         )}
         {activeTab === 'headers' && <ResponseHeaders headers={response.headers} />}
         {activeTab === 'curl' && (
