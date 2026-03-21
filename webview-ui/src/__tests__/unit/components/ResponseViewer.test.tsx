@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ResponseViewer } from '../../../components/ResponseViewer/ResponseViewer';
 import type { HttpResponse } from '../../../vscode';
@@ -497,10 +497,10 @@ describe('ResponseViewer', () => {
 
 			render(<ResponseViewer response={mockResponse} error={null} />);
 
-			const tabs = screen.getAllByRole('button');
-			expect(tabs).toHaveLength(4);
+			const tabButtons = screen.getAllByRole('button').filter(b => b.classList.contains('tab-button'));
+			expect(tabButtons).toHaveLength(4);
 
-			tabs.forEach(tab => {
+			tabButtons.forEach(tab => {
 				expect(tab).toHaveClass('tab-button');
 			});
 		});
@@ -525,6 +525,115 @@ describe('ResponseViewer', () => {
 			// Tab to focus on the tab
 			await user.tab();
 			expect(bodyTab).toHaveFocus();
+		});
+	});
+
+	describe('copy button', () => {
+		const mockResponse: HttpResponse = {
+			status: 200,
+			statusText: 'OK',
+			headers: {
+				'content-type': 'application/json',
+				'x-request-id': 'abc-123'
+			},
+			body: '{"success": true}',
+			contentType: 'application/json',
+			size: 18,
+			time: 245,
+			curlCommand: 'curl -X GET https://api.example.com',
+			debugLog: '* Connected to api.example.com'
+		};
+
+		let writeTextSpy: ReturnType<typeof vi.fn>;
+
+		beforeEach(() => {
+			// Provide a minimal clipboard stub (jsdom may not have one)
+			if (!navigator.clipboard) {
+				Object.defineProperty(navigator, 'clipboard', {
+					value: { writeText: vi.fn() },
+					writable: true,
+					configurable: true,
+				});
+			}
+			writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText')
+				.mockResolvedValue(undefined);
+		});
+
+		it('should show Copy button when response is present', () => {
+			render(<ResponseViewer response={mockResponse} error={null} />);
+
+			expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument();
+		});
+
+		it('should not show Copy button in empty state', () => {
+			render(<ResponseViewer response={null} error={null} />);
+
+			expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument();
+		});
+
+		it('should not show Copy button in error state', () => {
+			render(<ResponseViewer response={null} error="Network error" />);
+
+			expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument();
+		});
+
+		it('should copy response body when on Body tab', async () => {
+			const user = userEvent.setup();
+			render(<ResponseViewer response={mockResponse} error={null} />);
+
+			await user.click(screen.getByRole('button', { name: /copy/i }));
+
+			await waitFor(() => {
+				expect(writeTextSpy).toHaveBeenCalledWith(mockResponse.body);
+			});
+		});
+
+		it('should copy headers when on Headers tab', async () => {
+			const user = userEvent.setup();
+			render(<ResponseViewer response={mockResponse} error={null} />);
+
+			await user.click(screen.getByRole('button', { name: /headers/i }));
+			await user.click(screen.getByRole('button', { name: /copy/i }));
+
+			await waitFor(() => {
+				expect(writeTextSpy).toHaveBeenCalledWith(
+					'content-type: application/json\nx-request-id: abc-123'
+				);
+			});
+		});
+
+		it('should copy cURL command when on cURL tab', async () => {
+			const user = userEvent.setup();
+			render(<ResponseViewer response={mockResponse} error={null} />);
+
+			await user.click(screen.getByRole('button', { name: /curl/i }));
+			await user.click(screen.getByRole('button', { name: /copy/i }));
+
+			await waitFor(() => {
+				expect(writeTextSpy).toHaveBeenCalledWith(mockResponse.curlCommand);
+			});
+		});
+
+		it('should copy debug log when on Log tab', async () => {
+			const user = userEvent.setup();
+			render(<ResponseViewer response={mockResponse} error={null} />);
+
+			await user.click(screen.getByRole('button', { name: /^log/i }));
+			await user.click(screen.getByRole('button', { name: /copy/i }));
+
+			await waitFor(() => {
+				expect(writeTextSpy).toHaveBeenCalledWith(mockResponse.debugLog);
+			});
+		});
+
+		it('should show "Copied!" feedback after clicking', async () => {
+			const user = userEvent.setup();
+			render(<ResponseViewer response={mockResponse} error={null} />);
+
+			const copyBtn = screen.getByRole('button', { name: /copy/i });
+			await user.click(copyBtn);
+
+			expect(copyBtn).toHaveTextContent('Copied!');
 		});
 	});
 });

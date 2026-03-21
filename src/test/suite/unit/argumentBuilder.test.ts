@@ -554,9 +554,9 @@ describe('ArgumentBuilder', () => {
 				advanced: { ...createDefaultAdvancedOptions(), rawFlags: '' }
 			});
 			const args = builder.build(request, defaultOptions);
-			// Should only have the standard flags, no extras
+			// Should only have the standard flags (including default --connect-timeout), no extras
 			const argsWithoutStandard = args.filter(a =>
-				!['--request', 'GET', '--max-time', '30'].includes(a) &&
+				!['--request', 'GET', '--max-time', '30', '--connect-timeout', '10'].includes(a) &&
 				!a.startsWith('https://')
 			);
 			expect(argsWithoutStandard).to.have.length(0);
@@ -568,7 +568,7 @@ describe('ArgumentBuilder', () => {
 			});
 			const args = builder.build(request, defaultOptions);
 			const argsWithoutStandard = args.filter(a =>
-				!['--request', 'GET', '--max-time', '30'].includes(a) &&
+				!['--request', 'GET', '--max-time', '30', '--connect-timeout', '10'].includes(a) &&
 				!a.startsWith('https://')
 			);
 			expect(argsWithoutStandard).to.have.length(0);

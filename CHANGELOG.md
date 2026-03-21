@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.0]
+
+### Added
+
+- Copy button in the response viewer — copies the active tab content (body, headers, cURL command, or log) to the clipboard
+- Default `--connect-timeout 10` for all requests — prevents VS Code from hanging when endpoints are unreachable (overridable via Advanced options)
+
+### Fixed
+
+- Cancel button now works correctly — previously the webview received both `requestCancelled` and `requestError`, causing the error to overwrite the cancelled state
+- SIGKILL escalation: if a cURL process does not terminate within 3 seconds of SIGTERM (cancel or timeout), the extension now sends SIGKILL
+- Prevented double-rejection of the request promise when cancel or timeout races with the process close event
+
 ## [v0.5.1]
 
 ### Changed

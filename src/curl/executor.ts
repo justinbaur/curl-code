@@ -12,6 +12,21 @@ import type { EnvironmentService } from '../services/EnvironmentService';
 import type { CollectionService } from '../services/CollectionService';
 import type { EnvFileService } from '../services/EnvFileService';
 
+/**
+ * Error thrown when a request is cancelled by the user.
+ * Used to distinguish cancellation from other errors so the UI
+ * can show the appropriate state (cancelled vs error).
+ */
+export class RequestCancelledError extends Error {
+    constructor(message = 'Request cancelled') {
+        super(message);
+        this.name = 'RequestCancelledError';
+    }
+}
+
+/** How long to wait after SIGTERM before escalating to SIGKILL (ms) */
+const SIGKILL_DELAY_MS = 3000;
+
 export class CurlExecutor {
     private currentProcess: ChildProcess | null = null;
     private argumentBuilder: ArgumentBuilder;
@@ -19,6 +34,14 @@ export class CurlExecutor {
     private environmentService: EnvironmentService | undefined;
     private collectionService: CollectionService | undefined;
     private envFileService: EnvFileService | undefined;
+    /** Prevents the close/error handlers from settling the Promise twice */
+    private settled = false;
+    /** Set by cancel() so the close handler knows this was user-initiated */
+    private cancelled = false;
+    /** Handle for the JS-side timeout so it can be cleared on completion */
+    private timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    /** Handle for the SIGKILL escalation timer */
+    private sigkillHandle: ReturnType<typeof setTimeout> | null = null;
 
     constructor(environmentService?: EnvironmentService, collectionService?: CollectionService, envFileService?: EnvFileService) {
         this.argumentBuilder = new ArgumentBuilder();
@@ -42,7 +65,24 @@ export class CurlExecutor {
         const args = this.argumentBuilder.build(interpolatedRequest, options);
         const startTime = Date.now();
 
+        // Reset per-request state
+        this.settled = false;
+        this.cancelled = false;
+
         return new Promise((resolve, reject) => {
+            /** Settle the promise exactly once, cleaning up timers */
+            const settle = (outcome: { response?: HttpResponse; error?: Error }) => {
+                if (this.settled) return;
+                this.settled = true;
+                this.clearTimers();
+                this.currentProcess = null;
+                if (outcome.response) {
+                    resolve(outcome.response);
+                } else {
+                    reject(outcome.error);
+                }
+            };
+
             let stdout = '';
             let stderr = '';
 
@@ -74,7 +114,11 @@ export class CurlExecutor {
             });
 
             this.currentProcess.on('close', (code) => {
-                this.currentProcess = null;
+                if (this.cancelled) {
+                    settle({ error: new RequestCancelledError() });
+                    return;
+                }
+
                 const endTime = Date.now();
 
                 if (code === 0) {
@@ -88,30 +132,30 @@ export class CurlExecutor {
                         if (stderr.trim()) {
                             response.debugLog = stderr;
                         }
-                        resolve(response);
+                        settle({ response });
                     } catch (error) {
-                        reject(new Error(`Failed to parse response: ${error}`));
+                        settle({ error: new Error(`Failed to parse response: ${error}`) });
                     }
                 } else {
                     // Handle common cURL error codes
                     const errorMessage = this.getCurlErrorMessage(code, stderr);
-                    reject(new Error(errorMessage));
+                    settle({ error: new Error(errorMessage) });
                 }
             });
 
             this.currentProcess.on('error', (error) => {
-                this.currentProcess = null;
-                reject(new Error(`Failed to execute cURL: ${error.message}`));
+                settle({ error: new Error(`Failed to execute cURL: ${error.message}`) });
             });
 
-            // Handle timeout
+            // Handle timeout — kill the process and reject if cURL's own
+            // --max-time / --connect-timeout don't fire first.
             const timeout = options.timeout;
-            setTimeout(() => {
+            this.timeoutHandle = setTimeout(() => {
                 if (this.currentProcess) {
-                    this.currentProcess.kill('SIGTERM');
-                    reject(new Error(`Request timed out after ${timeout}ms`));
+                    this.killWithEscalation(this.currentProcess);
+                    settle({ error: new Error(`Request timed out after ${timeout}ms`) });
                 }
-            }, timeout + 1000); // Add buffer for cURL's own timeout handling
+            }, timeout + 1000); // 1 s buffer for cURL's own timeout handling
         });
     }
 
@@ -120,8 +164,32 @@ export class CurlExecutor {
      */
     cancel(): void {
         if (this.currentProcess) {
-            this.currentProcess.kill('SIGTERM');
-            this.currentProcess = null;
+            this.cancelled = true;
+            this.killWithEscalation(this.currentProcess);
+        }
+    }
+
+    /**
+     * Send SIGTERM, then escalate to SIGKILL if the process doesn't exit.
+     */
+    private killWithEscalation(proc: ChildProcess): void {
+        proc.kill('SIGTERM');
+        this.sigkillHandle = setTimeout(() => {
+            try { proc.kill('SIGKILL'); } catch { /* already dead */ }
+        }, SIGKILL_DELAY_MS);
+    }
+
+    /**
+     * Clean up any pending timers (timeout + SIGKILL escalation).
+     */
+    private clearTimers(): void {
+        if (this.timeoutHandle) {
+            clearTimeout(this.timeoutHandle);
+            this.timeoutHandle = null;
+        }
+        if (this.sigkillHandle) {
+            clearTimeout(this.sigkillHandle);
+            this.sigkillHandle = null;
         }
     }
 

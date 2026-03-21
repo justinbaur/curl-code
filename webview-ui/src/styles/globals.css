@@ -380,6 +380,9 @@ button:disabled {
 
 .tab-panel-right {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .tab-button {
@@ -534,6 +537,21 @@ button:disabled {
 
 .wrap-toggle input[type="checkbox"] {
   cursor: pointer;
+}
+
+.copy-response-button {
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.copy-response-button:hover {
+  background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground));
 }
 
 .response-body pre {
