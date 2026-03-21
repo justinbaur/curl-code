@@ -27,8 +27,6 @@ export function EnvironmentPicker() {
     );
   }
 
-  const activeEnv = environments.find((env) => env.id === activeEnvironmentId);
-
   return (
     <div className="environment-picker">
       <label htmlFor="environment-select" className="environment-label">
@@ -48,13 +46,6 @@ export function EnvironmentPicker() {
           </option>
         ))}
       </select>
-      {activeEnv && activeEnv.variables.filter((v) => v.enabled).length > 0 && (
-        <div className="environment-info">
-          <span className="variable-count">
-            {activeEnv.variables.filter((v) => v.enabled).length} active variables
-          </span>
-        </div>
-      )}
     </div>
   );
 }

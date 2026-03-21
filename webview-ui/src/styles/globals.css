@@ -65,20 +65,14 @@ body {
 }
 
 .app-top-bar .environment-picker {
-  flex: 1;
+  flex: 0 1 auto;
 }
 
-.layout-toggle {
-  flex: 0 0 auto;
+.top-bar-actions {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 16px;
-  padding: 4px 8px;
-}
-
-.layout-toggle-label {
-  font-size: 12px;
+  margin-left: auto;
 }
 
 /* Panels container */
@@ -334,15 +328,7 @@ button:disabled {
   background: var(--input-background);
 }
 
-/* Toolbar */
-.toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
-}
-
+/* Toolbar buttons (used in app top bar) */
 .toolbar-button {
   background: transparent;
   color: var(--text-secondary);
@@ -353,20 +339,6 @@ button:disabled {
 .toolbar-button:hover:not(:disabled) {
   color: var(--text-primary);
   background: var(--input-background);
-}
-
-.toolbar-button--primary {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
-  font-weight: 600;
-}
-
-.toolbar-button--primary:hover:not(:disabled) {
-  background: var(--vscode-button-hoverBackground);
-  color: var(--vscode-button-foreground);
 }
 
 /* Tabs */

@@ -50,7 +50,7 @@ describe('App', () => {
 			const toggle = screen.getByTitle('Switch to side-by-side layout');
 
 			expect(toggle).toBeInTheDocument();
-			expect(toggle).toHaveClass('layout-toggle');
+			expect(toggle).toHaveClass('toolbar-button');
 		});
 
 		it('should set default 50/50 split ratio on panels', () => {
@@ -189,13 +189,14 @@ describe('App', () => {
 	});
 
 	describe('app top bar', () => {
-		it('should render environment picker and layout toggle in top bar', () => {
+		it('should render environment picker, toolbar buttons, and layout toggle in top bar', () => {
 			const { container } = render(<App />);
 			const topBar = container.querySelector('.app-top-bar');
 
 			expect(topBar).toBeInTheDocument();
 			expect(screen.getByTestId('environment-picker')).toBeInTheDocument();
-			expect(topBar?.querySelector('.layout-toggle')).toBeInTheDocument();
+			expect(screen.getByTitle('Switch to side-by-side layout')).toBeInTheDocument();
+			expect(topBar?.querySelector('.top-bar-actions')).toBeInTheDocument();
 		});
 	});
 });

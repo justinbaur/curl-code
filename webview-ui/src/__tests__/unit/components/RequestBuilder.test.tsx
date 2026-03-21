@@ -95,24 +95,16 @@ const createMockRequest = (overrides?: Partial<HttpRequest>): HttpRequest => ({
 interface RenderOptions {
 	request?: HttpRequest;
 	isLoading?: boolean;
-	isDirty?: boolean;
 	onChange?: (request: HttpRequest) => void;
 	onSend?: () => void;
-	onSave?: () => void;
-	onSaveAs?: () => void;
-	onCopyAsCurl?: () => void;
 }
 
 function renderBuilder(opts: RenderOptions = {}) {
 	const props = {
 		request: opts.request ?? createMockRequest(),
 		isLoading: opts.isLoading ?? false,
-		isDirty: opts.isDirty ?? false,
 		onChange: opts.onChange ?? (vi.fn() as (request: HttpRequest) => void),
 		onSend: opts.onSend ?? (vi.fn() as () => void),
-		onSave: opts.onSave ?? (vi.fn() as () => void),
-		onSaveAs: opts.onSaveAs ?? (vi.fn() as () => void),
-		onCopyAsCurl: opts.onCopyAsCurl ?? (vi.fn() as () => void),
 	};
 	render(<RequestBuilder {...props} />);
 	return props;
@@ -130,9 +122,6 @@ describe('RequestBuilder', () => {
 			expect(screen.getByTestId('method-selector')).toBeInTheDocument();
 			expect(screen.getByTestId('url-bar')).toBeInTheDocument();
 			expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /save as/i })).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /copy as curl/i })).toBeInTheDocument();
 			expect(screen.getByTestId('tab-panel')).toBeInTheDocument();
 		});
 
@@ -281,53 +270,6 @@ describe('RequestBuilder', () => {
 			await user.click(screen.getByRole('button', { name: /send/i }));
 
 			expect(onSend).toHaveBeenCalledTimes(1);
-		});
-	});
-
-	describe('toolbar buttons', () => {
-		it('should show "Save" label when not dirty', () => {
-			renderBuilder({ isDirty: false });
-
-			expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
-		});
-
-		it('should show "* Save" label when dirty', () => {
-			renderBuilder({ isDirty: true });
-
-			expect(screen.getByRole('button', { name: /^\* save$/i })).toBeInTheDocument();
-		});
-
-		it('should call onSave when Save button clicked', async () => {
-			const onSave = vi.fn();
-			const user = userEvent.setup();
-
-			renderBuilder({ isDirty: false, onSave });
-
-			await user.click(screen.getByRole('button', { name: /^save$/i }));
-
-			expect(onSave).toHaveBeenCalledTimes(1);
-		});
-
-		it('should call onSaveAs when Save As button clicked', async () => {
-			const onSaveAs = vi.fn();
-			const user = userEvent.setup();
-
-			renderBuilder({ onSaveAs });
-
-			await user.click(screen.getByRole('button', { name: /save as/i }));
-
-			expect(onSaveAs).toHaveBeenCalledTimes(1);
-		});
-
-		it('should call onCopyAsCurl when Copy as cURL button clicked', async () => {
-			const onCopyAsCurl = vi.fn();
-			const user = userEvent.setup();
-
-			renderBuilder({ onCopyAsCurl });
-
-			await user.click(screen.getByRole('button', { name: /copy as curl/i }));
-
-			expect(onCopyAsCurl).toHaveBeenCalledTimes(1);
 		});
 	});
 

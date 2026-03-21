@@ -147,16 +147,26 @@ export default function App() {
     <div className="app-container">
       <div className="app-top-bar">
         <EnvironmentPicker />
-        <button
-          className="layout-toggle btn-icon"
-          onClick={toggleLayout}
-          title={layout === 'horizontal' ? 'Switch to side-by-side layout' : 'Switch to stacked layout'}
-        >
-          {layout === 'horizontal' ? '\u2B0C' : '\u2B0D'}
-          <span className="layout-toggle-label">
+        <div className="top-bar-actions">
+          <button type="button" className="toolbar-button" onClick={handleSave}>
+            {isDirty ? '* Save' : 'Save'}
+          </button>
+          <button type="button" className="toolbar-button" onClick={handleSaveAs}>
+            Save As
+          </button>
+          <button type="button" className="toolbar-button" onClick={handleCopyAsCurl}>
+            Copy as cURL
+          </button>
+          <button
+            type="button"
+            className="toolbar-button"
+            onClick={toggleLayout}
+            title={layout === 'horizontal' ? 'Switch to side-by-side layout' : 'Switch to stacked layout'}
+          >
+            {layout === 'horizontal' ? '\u2B0C' : '\u2B0D'}{' '}
             {layout === 'horizontal' ? 'Stacked' : 'Side by Side'}
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
       <div className={`panels-container ${layout}`} ref={containerRef}>
         <div
@@ -167,11 +177,7 @@ export default function App() {
             request={request}
             onChange={handleChange}
             onSend={handleSend}
-            onSave={handleSave}
-            onSaveAs={handleSaveAs}
-            onCopyAsCurl={handleCopyAsCurl}
             isLoading={isLoading}
-            isDirty={isDirty}
           />
         </div>
         <div
