@@ -70,11 +70,18 @@ export class CurlExecutor {
         this.cancelled = false;
 
         return new Promise((resolve, reject) => {
-            /** Settle the promise exactly once, cleaning up timers */
+            /** Settle the promise exactly once, cleaning up the timeout timer.
+             *  Note: we intentionally do NOT clear sigkillHandle here — if a
+             *  SIGTERM was sent and the process hasn't exited yet, we still need
+             *  the SIGKILL escalation to fire. The sigkillHandle is harmless if
+             *  the process is already dead (kill() is wrapped in try/catch). */
             const settle = (outcome: { response?: HttpResponse; error?: Error }) => {
                 if (this.settled) return;
                 this.settled = true;
-                this.clearTimers();
+                if (this.timeoutHandle) {
+                    clearTimeout(this.timeoutHandle);
+                    this.timeoutHandle = null;
+                }
                 this.currentProcess = null;
                 if (outcome.response) {
                     resolve(outcome.response);
@@ -114,6 +121,12 @@ export class CurlExecutor {
             });
 
             this.currentProcess.on('close', (code) => {
+                // Process exited — SIGKILL escalation is no longer needed
+                if (this.sigkillHandle) {
+                    clearTimeout(this.sigkillHandle);
+                    this.sigkillHandle = null;
+                }
+
                 if (this.cancelled) {
                     settle({ error: new RequestCancelledError() });
                     return;
@@ -179,19 +192,6 @@ export class CurlExecutor {
         }, SIGKILL_DELAY_MS);
     }
 
-    /**
-     * Clean up any pending timers (timeout + SIGKILL escalation).
-     */
-    private clearTimers(): void {
-        if (this.timeoutHandle) {
-            clearTimeout(this.timeoutHandle);
-            this.timeoutHandle = null;
-        }
-        if (this.sigkillHandle) {
-            clearTimeout(this.sigkillHandle);
-            this.sigkillHandle = null;
-        }
-    }
 
     /**
      * Check if cURL is available on the system
