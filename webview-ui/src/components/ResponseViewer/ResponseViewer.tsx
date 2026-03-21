@@ -2,7 +2,7 @@
  * Main response viewer component
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { HttpResponse } from '../../vscode';
 import { TabPanel, type Tab } from '../common/TabPanel';
 import { ResponseInfo } from './ResponseInfo';
@@ -17,9 +17,34 @@ interface ResponseViewerProps {
 
 type TabId = 'body' | 'headers' | 'curl' | 'log';
 
+/** Return the plain-text content for the currently active tab. */
+function getTabCopyText(tab: TabId, response: HttpResponse): string {
+  switch (tab) {
+    case 'body':
+      return response.body;
+    case 'headers':
+      return Object.entries(response.headers)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\n');
+    case 'curl':
+      return response.curlCommand;
+    case 'log':
+      return response.debugLog ?? '';
+  }
+}
+
 export function ResponseViewer({ response, error }: ResponseViewerProps) {
   const [activeTab, setActiveTab] = useState<TabId>('body');
   const [wordWrap, setWordWrap] = useState(false);
+  const [copyLabel, setCopyLabel] = useState('Copy');
+
+  const handleCopy = useCallback(async () => {
+    if (!response) return;
+    const text = getTabCopyText(activeTab, response);
+    await navigator.clipboard.writeText(text);
+    setCopyLabel('Copied!');
+    setTimeout(() => setCopyLabel('Copy'), 1500);
+  }, [activeTab, response]);
 
   if (error) {
     return (
@@ -62,16 +87,25 @@ export function ResponseViewer({ response, error }: ResponseViewerProps) {
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as TabId)}
         rightContent={
-          activeTab === 'body' && (
-            <label className="wrap-toggle">
-              <input
-                type="checkbox"
-                checked={wordWrap}
-                onChange={(e) => setWordWrap(e.target.checked)}
-              />
-              Wrap Text
-            </label>
-          )
+          <>
+            {activeTab === 'body' && (
+              <label className="wrap-toggle">
+                <input
+                  type="checkbox"
+                  checked={wordWrap}
+                  onChange={(e) => setWordWrap(e.target.checked)}
+                />
+                Wrap Text
+              </label>
+            )}
+            <button
+              type="button"
+              className="copy-response-button"
+              onClick={handleCopy}
+            >
+              {copyLabel}
+            </button>
+          </>
         }
       />
 

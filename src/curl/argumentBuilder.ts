@@ -46,7 +46,16 @@ export class ArgumentBuilder {
         }
 
         // Timeout (convert ms to seconds)
-        args.push('--max-time', String(Math.ceil(options.timeout / 1000)));
+        const timeoutSec = Math.ceil(options.timeout / 1000);
+        args.push('--max-time', String(timeoutSec));
+
+        // Default connect timeout — fail fast on unreachable hosts rather than
+        // waiting for the full --max-time or OS-level TCP timeout (which can
+        // exceed 2 minutes on Linux).  A per-request connectTimeout in the
+        // advanced options will override this via addAdvancedArgs below.
+        if (!request.advanced?.connectTimeout) {
+            args.push('--connect-timeout', String(Math.min(10, timeoutSec)));
+        }
 
         // Advanced options
         this.addAdvancedArgs(args, request);

@@ -140,72 +140,6 @@ describe('EnvironmentPicker', () => {
 		});
 	});
 
-	describe('active environment info', () => {
-		it('should show active variable count when environment is active', () => {
-			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
-				environments: [
-					{ id: 'env1', name: 'Production', variables: [
-						{ key: 'VAR1', value: 'val1', enabled: true },
-						{ key: 'VAR2', value: 'val2', enabled: true },
-						{ key: 'VAR3', value: 'val3', enabled: false },
-					]},
-				],
-				activeEnvironmentId: 'env1',
-			} as any);
-
-			render(<EnvironmentPicker />);
-
-			expect(screen.getByText('2 active variables')).toBeInTheDocument();
-		});
-
-		it('should not show active variable count when no environment is active', () => {
-			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
-				environments: [
-					{ id: 'env1', name: 'Production', variables: [
-						{ key: 'VAR1', value: 'val1', enabled: true },
-					]},
-				],
-				activeEnvironmentId: null,
-			} as any);
-
-			render(<EnvironmentPicker />);
-
-			expect(screen.queryByText(/active variables/)).not.toBeInTheDocument();
-		});
-
-		it('should not show active variable count when active environment has no variables', () => {
-			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
-				environments: [
-					{ id: 'env1', name: 'Production', variables: [] },
-				],
-				activeEnvironmentId: 'env1',
-			} as any);
-
-			render(<EnvironmentPicker />);
-
-			expect(screen.queryByText(/active variables/)).not.toBeInTheDocument();
-		});
-
-		it('should count only enabled variables', () => {
-			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
-				environments: [
-					{ id: 'env1', name: 'Production', variables: [
-						{ key: 'VAR1', value: 'val1', enabled: true },
-						{ key: 'VAR2', value: 'val2', enabled: false },
-						{ key: 'VAR3', value: 'val3', enabled: false },
-						{ key: 'VAR4', value: 'val4', enabled: true },
-						{ key: 'VAR5', value: 'val5', enabled: true },
-					]},
-				],
-				activeEnvironmentId: 'env1',
-			} as any);
-
-			render(<EnvironmentPicker />);
-
-			expect(screen.getByText('3 active variables')).toBeInTheDocument();
-		});
-	});
-
 	describe('user interactions', () => {
 		it('should send message when selecting an environment', async () => {
 			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
@@ -321,23 +255,6 @@ describe('EnvironmentPicker', () => {
 			render(<EnvironmentPicker />);
 
 			expect(screen.getByRole('option', { name: 'Empty (0 vars)' })).toBeInTheDocument();
-		});
-
-		it('should handle all variables disabled', () => {
-			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
-				environments: [
-					{ id: 'env1', name: 'Production', variables: [
-						{ key: 'VAR1', value: 'val1', enabled: false },
-						{ key: 'VAR2', value: 'val2', enabled: false },
-					]},
-				],
-				activeEnvironmentId: 'env1',
-			} as any);
-
-			render(<EnvironmentPicker />);
-
-			// Should not show info when no variables are active
-			expect(screen.queryByText(/active variables/)).not.toBeInTheDocument();
 		});
 
 		it('should handle environment name with special characters', () => {

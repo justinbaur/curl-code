@@ -2,9 +2,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  background-color: var(--vscode-sideBar-background);
-  border-bottom: 1px solid var(--vscode-panel-border);
 }
 
 .environment-label {
@@ -35,18 +32,4 @@
 .environment-select:focus {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
-}
-
-.environment-info {
-  background-color: var(--vscode-dropdown-background);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.variable-count {
-  font-size: 11px;
-  color: var(--vscode-descriptionForeground);
-  font-style: italic;
 }

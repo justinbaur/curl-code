@@ -7,7 +7,7 @@ import type { HttpRequest } from '../types/request';
 import type { Environment, Folder } from '../types/collection';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../types/messages';
 import { createEmptyRequest, normalizeRequest, generateId } from '../types/request';
-import { CurlExecutor } from '../curl/executor';
+import { CurlExecutor, RequestCancelledError } from '../curl/executor';
 import { CollectionService } from '../services/CollectionService';
 import { HistoryService } from '../services/HistoryService';
 import { EnvironmentService } from '../services/EnvironmentService';
@@ -286,6 +286,11 @@ export class RequestPanelManager {
             this.sendMessageTo(panel, { type: 'responseReceived', response });
             await this.historyService.addEntry(request, response);
         } catch (error) {
+            // If the user cancelled, the 'cancelRequest' handler already sent
+            // 'requestCancelled' to the webview — don't overwrite it with an error.
+            if (error instanceof RequestCancelledError) {
+                return;
+            }
             const errorMessage = error instanceof Error ? error.message : String(error);
             this.sendMessageTo(panel, { type: 'requestError', error: errorMessage });
             await this.historyService.addEntry(request, undefined, errorMessage);

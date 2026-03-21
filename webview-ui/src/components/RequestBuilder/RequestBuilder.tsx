@@ -18,11 +18,7 @@ interface RequestBuilderProps {
   request: HttpRequest;
   onChange: (request: HttpRequest) => void;
   onSend: () => void;
-  onSave: () => void;
-  onSaveAs: () => void;
-  onCopyAsCurl: () => void;
   isLoading: boolean;
-  isDirty: boolean;
 }
 
 type TabId = 'params' | 'headers' | 'body' | 'auth' | 'advanced';
@@ -57,11 +53,7 @@ export function RequestBuilder({
   request,
   onChange,
   onSend,
-  onSave,
-  onSaveAs,
-  onCopyAsCurl,
   isLoading,
-  isDirty,
 }: RequestBuilderProps) {
   const [activeTab, setActiveTab] = useState<TabId>('params');
 
@@ -131,19 +123,6 @@ export function RequestBuilder({
           disabled={isLoading || !request.url}
         >
           {isLoading ? 'Sending...' : 'Send'}
-        </button>
-      </div>
-
-      <div className="toolbar">
-        <button type="button" className="toolbar-button toolbar-button--primary" onClick={onSave}>
-          <i className="codicon codicon-save" />
-          {isDirty ? '* Save' : 'Save'}
-        </button>
-        <button type="button" className="toolbar-button" onClick={onSaveAs}>
-          Save As
-        </button>
-        <button type="button" className="toolbar-button" onClick={onCopyAsCurl}>
-          Copy as cURL
         </button>
       </div>
 
