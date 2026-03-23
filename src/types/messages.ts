@@ -15,7 +15,8 @@ export type ExtensionToWebviewMessage =
     | { type: 'requestSaved' }
     | { type: 'loadEnvironments'; environments: Environment[]; activeId?: string }
     | { type: 'themeChanged'; theme: 'light' | 'dark' | 'high-contrast' }
-    | { type: 'updateRequest'; request: Partial<HttpRequest> };
+    | { type: 'updateRequest'; request: Partial<HttpRequest> }
+    | { type: 'clipboardContent'; text: string };
 
 // Webview -> Extension messages
 export type WebviewToExtensionMessage =
@@ -26,6 +27,7 @@ export type WebviewToExtensionMessage =
     | { type: 'selectEnvironment'; environmentId: string | null }
     | { type: 'ready' }
     | { type: 'openExternal'; url: string }
-    | { type: 'updateRequest'; request: HttpRequest };
+    | { type: 'updateRequest'; request: HttpRequest }
+    | { type: 'readClipboard' };
 
 export type Message = ExtensionToWebviewMessage | WebviewToExtensionMessage;

@@ -173,7 +173,8 @@ export type ExtensionMessage =
   | { type: 'requestStarted' }
   | { type: 'requestCancelled' }
   | { type: 'requestSaved' }
-  | { type: 'loadEnvironments'; environments: Environment[]; activeId?: string };
+  | { type: 'loadEnvironments'; environments: Environment[]; activeId?: string }
+  | { type: 'clipboardContent'; text: string };
 
 export type WebviewMessage =
   | { type: 'sendRequest'; request: HttpRequest }
@@ -182,7 +183,8 @@ export type WebviewMessage =
   | { type: 'copyAsCurl'; request: HttpRequest }
   | { type: 'selectEnvironment'; environmentId: string | null }
   | { type: 'ready' }
-  | { type: 'openExternal'; url: string };
+  | { type: 'openExternal'; url: string }
+  | { type: 'readClipboard' };
 
 // VS Code API interface
 interface VSCodeApi {
