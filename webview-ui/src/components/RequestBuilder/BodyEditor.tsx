@@ -5,6 +5,7 @@
 import { useCallback, useRef } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+import * as monaco from 'monaco-editor';
 import type { HttpBody } from '../../vscode';
 
 interface BodyEditorProps {
@@ -52,6 +53,26 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor;
+
+    // VS Code webviews intercept Ctrl+V/Cmd+V before the iframe receives
+    // the native paste event, so Monaco's built-in paste silently fails.
+    // Override the paste action to read from the Clipboard API directly.
+    editor.addAction({
+      id: 'editor.action.clipboardPasteAction',
+      label: 'Paste',
+      keybindings: [
+        // eslint-disable-next-line no-bitwise
+        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
+      ],
+      run: async (ed) => {
+        try {
+          const text = await navigator.clipboard.readText();
+          ed.trigger('clipboard', 'type', { text });
+        } catch {
+          // Clipboard API denied — fall through to default
+        }
+      },
+    });
   };
 
   const formatJson = () => {
