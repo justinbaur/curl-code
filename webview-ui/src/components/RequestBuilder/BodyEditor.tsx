@@ -5,7 +5,6 @@
 import { useCallback, useRef } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import * as monaco from 'monaco-editor';
 import type { HttpBody } from '../../vscode';
 
 interface BodyEditorProps {
@@ -51,7 +50,7 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
     [onChange, body.type]
   );
 
-  const handleEditorMount: OnMount = (editor) => {
+  const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
 
     // VS Code webviews intercept Ctrl+V/Cmd+V before the iframe receives

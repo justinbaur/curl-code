@@ -6,13 +6,18 @@ import type { HttpBody } from '../../../vscode';
 
 // Mock Monaco Editor — it doesn't render in jsdom
 let mockOnChange: ((value: string | undefined) => void) | undefined;
-let mockOnMount: ((editor: unknown) => void) | undefined;
+let mockOnMount: ((editor: unknown, monaco: unknown) => void) | undefined;
+
+const mockMonaco = {
+	KeyMod: { CtrlCmd: 2048 },
+	KeyCode: { KeyV: 52 },
+};
 
 vi.mock('@monaco-editor/react', () => ({
 	default: ({ value, onChange, onMount, language }: {
 		value: string;
 		onChange: (value: string | undefined) => void;
-		onMount: (editor: unknown) => void;
+		onMount: (editor: unknown, monaco: unknown) => void;
 		language: string;
 	}) => {
 		mockOnChange = onChange;
@@ -135,8 +140,9 @@ describe('BodyEditor', () => {
 			const mockRun = vi.fn();
 			const mockEditor = {
 				getAction: vi.fn().mockReturnValue({ run: mockRun }),
+				addAction: vi.fn(),
 			};
-			mockOnMount?.(mockEditor);
+			mockOnMount?.(mockEditor, mockMonaco);
 
 			const formatButton = screen.getByRole('button', { name: /format/i });
 			await user.click(formatButton);
