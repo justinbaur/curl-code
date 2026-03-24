@@ -6,13 +6,25 @@ import type { HttpBody } from '../../../vscode';
 
 // Mock Monaco Editor — it doesn't render in jsdom
 let mockOnChange: ((value: string | undefined) => void) | undefined;
-let mockOnMount: ((editor: unknown) => void) | undefined;
+let mockOnMount: ((editor: unknown, monaco: unknown) => void) | undefined;
+
+const mockMonaco = {
+	KeyMod: { CtrlCmd: 2048 },
+	KeyCode: { KeyV: 52 },
+};
+
+vi.mock('../../vscode', () => ({
+	vscode: {
+		postMessage: vi.fn(),
+		onMessage: vi.fn(() => vi.fn()),
+	},
+}));
 
 vi.mock('@monaco-editor/react', () => ({
 	default: ({ value, onChange, onMount, language }: {
 		value: string;
 		onChange: (value: string | undefined) => void;
-		onMount: (editor: unknown) => void;
+		onMount: (editor: unknown, monaco: unknown) => void;
 		language: string;
 	}) => {
 		mockOnChange = onChange;
@@ -125,24 +137,33 @@ describe('BodyEditor', () => {
 			});
 		});
 
-		it('should call format action when format button is clicked', async () => {
+		it('should format JSON when format button is clicked', async () => {
 			const body: HttpBody = { type: 'json', content: '{"name":"test"}' };
 			const onChange = vi.fn();
 			const user = userEvent.setup();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			// Simulate Monaco mount with a mock editor
-			const mockRun = vi.fn();
-			const mockEditor = {
-				getAction: vi.fn().mockReturnValue({ run: mockRun }),
+			// Simulate Monaco mount with a mock editor that has a model
+			const mockExecuteEdits = vi.fn();
+			const mockModel = {
+				getValue: vi.fn().mockReturnValue('{"name":"test"}'),
+				getFullModelRange: vi.fn().mockReturnValue({ startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 16 }),
 			};
-			mockOnMount?.(mockEditor);
+			const mockEditor = {
+				getModel: vi.fn().mockReturnValue(mockModel),
+				executeEdits: mockExecuteEdits,
+				addCommand: vi.fn(),
+				getDomNode: vi.fn().mockReturnValue(null),
+			};
+			mockOnMount?.(mockEditor, mockMonaco);
 
 			const formatButton = screen.getByRole('button', { name: /format/i });
 			await user.click(formatButton);
 
-			expect(mockEditor.getAction).toHaveBeenCalledWith('editor.action.formatDocument');
-			expect(mockRun).toHaveBeenCalled();
+			expect(mockExecuteEdits).toHaveBeenCalledWith('format', [{
+				range: mockModel.getFullModelRange(),
+				text: JSON.stringify(JSON.parse('{"name":"test"}'), null, 2),
+			}]);
 		});
 
 		it('should not modify content when formatting invalid JSON', async () => {
@@ -151,11 +172,23 @@ describe('BodyEditor', () => {
 			const user = userEvent.setup();
 			render(<BodyEditor body={body} onChange={onChange} />);
 
-			// No editor mounted, so format should be a no-op
+			const mockExecuteEdits = vi.fn();
+			const mockModel = {
+				getValue: vi.fn().mockReturnValue('{invalid json}'),
+				getFullModelRange: vi.fn(),
+			};
+			const mockEditor = {
+				getModel: vi.fn().mockReturnValue(mockModel),
+				executeEdits: mockExecuteEdits,
+				addCommand: vi.fn(),
+				getDomNode: vi.fn().mockReturnValue(null),
+			};
+			mockOnMount?.(mockEditor, mockMonaco);
+
 			const formatButton = screen.getByRole('button', { name: /format/i });
 			await user.click(formatButton);
 
-			expect(onChange).not.toHaveBeenCalled();
+			expect(mockExecuteEdits).not.toHaveBeenCalled();
 		});
 	});
 

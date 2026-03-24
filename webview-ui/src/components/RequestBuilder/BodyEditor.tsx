@@ -2,10 +2,10 @@
  * Request body editor component — powered by Monaco Editor
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import type { HttpBody } from '../../vscode';
+import { vscode, type HttpBody } from '../../vscode';
 
 interface BodyEditorProps {
   body: HttpBody;
@@ -34,8 +34,15 @@ function bodyTypeToLanguage(type: HttpBody['type']): string {
   }
 }
 
+interface ContextMenuState {
+  x: number;
+  y: number;
+  hasSelection: boolean;
+}
+
 export function BodyEditor({ body, onChange }: BodyEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const handleTypeChange = (type: HttpBody['type']) => {
     onChange({ ...body, type });
@@ -50,13 +57,138 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
     [onChange, body.type]
   );
 
-  const handleEditorMount: OnMount = (editor) => {
-    editorRef.current = editor;
-  };
+  // ── Clipboard read via extension host ──────────────────────────────
+  // The webview iframe can't reliably read the system clipboard, so we
+  // ask the extension host (which has vscode.env.clipboard) instead.
+  const clipboardResolveRef = useRef<((text: string) => void) | null>(null);
 
-  const formatJson = () => {
-    if (editorRef.current) {
-      editorRef.current.getAction('editor.action.formatDocument')?.run();
+  useEffect(() => {
+    const unsubscribe = vscode.onMessage((msg) => {
+      if (msg.type === 'clipboardContent' && clipboardResolveRef.current) {
+        clipboardResolveRef.current(msg.text);
+        clipboardResolveRef.current = null;
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  const readClipboard = useCallback((): Promise<string> => {
+    return new Promise((resolve) => {
+      clipboardResolveRef.current = resolve;
+      vscode.postMessage({ type: 'readClipboard' });
+      setTimeout(() => {
+        if (clipboardResolveRef.current === resolve) {
+          clipboardResolveRef.current = null;
+          resolve('');
+        }
+      }, 2000);
+    });
+  }, []);
+
+  // ── Clipboard write (works in webviews — only reads are broken) ────
+  const writeClipboard = useCallback((text: string) => {
+    navigator.clipboard.writeText(text).catch(() => { /* denied */ });
+  }, []);
+
+  // ── Context-menu actions ───────────────────────────────────────────
+  const handleCut = useCallback(() => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const sel = ed.getSelection();
+    if (sel && !sel.isEmpty()) {
+      const text = ed.getModel()?.getValueInRange(sel) ?? '';
+      writeClipboard(text);
+      ed.executeEdits('cut', [{ range: sel, text: '' }]);
+    }
+    setContextMenu(null);
+  }, [writeClipboard]);
+
+  const handleCopy = useCallback(() => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const sel = ed.getSelection();
+    if (sel && !sel.isEmpty()) {
+      const text = ed.getModel()?.getValueInRange(sel) ?? '';
+      writeClipboard(text);
+    }
+    setContextMenu(null);
+  }, [writeClipboard]);
+
+  const handlePaste = useCallback(async () => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const text = await readClipboard();
+    if (text) {
+      ed.trigger('clipboard', 'type', { text });
+    }
+    setContextMenu(null);
+  }, [readClipboard]);
+
+  const handleSelectAll = useCallback(() => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const model = ed.getModel();
+    if (model) {
+      ed.setSelection(model.getFullModelRange());
+    }
+    setContextMenu(null);
+  }, []);
+
+  const formatJson = useCallback(() => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const model = ed.getModel();
+    if (!model) return;
+    try {
+      const formatted = JSON.stringify(JSON.parse(model.getValue()), null, 2);
+      const fullRange = model.getFullModelRange();
+      ed.executeEdits('format', [{ range: fullRange, text: formatted }]);
+    } catch {
+      // Invalid JSON — nothing to format
+    }
+    setContextMenu(null);
+  }, []);
+
+  // ── Dismiss context menu on click / scroll / keypress ──────────────
+  useEffect(() => {
+    if (!contextMenu) return;
+    const dismiss = () => setContextMenu(null);
+    document.addEventListener('click', dismiss);
+    document.addEventListener('keydown', dismiss);
+    document.addEventListener('scroll', dismiss, true);
+    return () => {
+      document.removeEventListener('click', dismiss);
+      document.removeEventListener('keydown', dismiss);
+      document.removeEventListener('scroll', dismiss, true);
+    };
+  }, [contextMenu]);
+
+  // ── Editor mount ───────────────────────────────────────────────────
+  const handleEditorMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+
+    // Override Ctrl+V / Cmd+V keybinding to use extension-host clipboard.
+    // eslint-disable-next-line no-bitwise
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
+      const text = await readClipboard();
+      if (text) {
+        editor.trigger('clipboard', 'type', { text });
+      }
+    });
+
+    // Open our custom context menu instead of Monaco's broken one.
+    const domNode = editor.getDomNode();
+    if (domNode) {
+      domNode.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const sel = editor.getSelection();
+        setContextMenu({
+          x: e.clientX,
+          y: e.clientY,
+          hasSelection: !!sel && !sel.isEmpty(),
+        });
+      });
     }
   };
 
@@ -77,7 +209,7 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
           <button
             type="button"
             className="btn-icon"
-            onClick={formatJson}
+            onClick={() => formatJson()}
             style={{ marginLeft: 8 }}
             title="Format JSON"
           >
@@ -108,6 +240,7 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
               overviewRulerLanes: 0,
               hideCursorInOverviewRuler: true,
               overviewRulerBorder: false,
+              contextmenu: false,
               scrollbar: {
                 verticalScrollbarSize: 10,
                 horizontalScrollbarSize: 10,
@@ -123,6 +256,43 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
             Form data editing is not yet supported in the UI.
             You can use the JSON or Raw body types for now.
           </p>
+        </div>
+      )}
+
+      {contextMenu && (
+        <div
+          className="editor-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            type="button"
+            disabled={!contextMenu.hasSelection}
+            onClick={handleCut}
+          >
+            Cut
+          </button>
+          <button
+            type="button"
+            disabled={!contextMenu.hasSelection}
+            onClick={handleCopy}
+          >
+            Copy
+          </button>
+          <button type="button" onClick={handlePaste}>
+            Paste
+          </button>
+          <div className="editor-context-menu-separator" />
+          <button type="button" onClick={handleSelectAll}>
+            Select All
+          </button>
+          {body.type === 'json' && (
+            <>
+              <div className="editor-context-menu-separator" />
+              <button type="button" onClick={formatJson}>
+                Format Document
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

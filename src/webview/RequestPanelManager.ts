@@ -257,6 +257,12 @@ export class RequestPanelManager {
                     panel.title = `* ${this.panelTitle(message.request)}`;
                     break;
 
+                case 'readClipboard': {
+                    const text = await vscode.env.clipboard.readText();
+                    this.sendMessageTo(panel, { type: 'clipboardContent', text });
+                    break;
+                }
+
                 case 'selectEnvironment':
                     if (message.environmentId) {
                         // Delegate to the command which handles mutual exclusion across all environment types
