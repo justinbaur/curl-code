@@ -167,12 +167,30 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
 
-    // Override Ctrl+V / Cmd+V keybinding to use extension-host clipboard.
+    // VS Code webviews intercept Ctrl+C/X/V before Monaco sees them.
+    // Override all clipboard keybindings to use extension-host clipboard.
     // eslint-disable-next-line no-bitwise
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
       const text = await readClipboard();
       if (text) {
         editor.trigger('clipboard', 'type', { text });
+      }
+    });
+    // eslint-disable-next-line no-bitwise
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
+      const sel = editor.getSelection();
+      if (sel && !sel.isEmpty()) {
+        const text = editor.getModel()?.getValueInRange(sel) ?? '';
+        writeClipboard(text);
+      }
+    });
+    // eslint-disable-next-line no-bitwise
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, () => {
+      const sel = editor.getSelection();
+      if (sel && !sel.isEmpty()) {
+        const text = editor.getModel()?.getValueInRange(sel) ?? '';
+        writeClipboard(text);
+        editor.executeEdits('cut', [{ range: sel, text: '' }]);
       }
     });
 
