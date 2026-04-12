@@ -105,7 +105,8 @@ export class ArgumentBuilder {
                 break;
             case 'api-key':
                 if (request.auth.apiKeyName && request.auth.apiKeyValue) {
-                    if (request.auth.apiKeyLocation === 'header') {
+                    // Default to 'header' when apiKeyLocation is not explicitly set
+                    if (!request.auth.apiKeyLocation || request.auth.apiKeyLocation === 'header') {
                         args.push('--header', `${request.auth.apiKeyName}: ${request.auth.apiKeyValue}`);
                     }
                     // Query params are handled in buildUrl if needed
