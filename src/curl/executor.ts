@@ -293,6 +293,7 @@ export class CurlExecutor {
                 username: request.auth.username ? resolveVar(request.auth.username) : undefined,
                 password: request.auth.password ? resolveVar(request.auth.password) : undefined,
                 token: request.auth.token ? resolveVar(request.auth.token) : undefined,
+                apiKeyName: request.auth.apiKeyName ? resolveVar(request.auth.apiKeyName) : undefined,
                 apiKeyValue: request.auth.apiKeyValue ? resolveVar(request.auth.apiKeyValue) : undefined
             },
             advanced: request.advanced ? {

@@ -148,6 +148,22 @@ describe('ArgumentBuilder', () => {
 			expect(args).to.include('X-API-Key: key123');
 		});
 
+		it('should add API key as header when apiKeyLocation is undefined', () => {
+			const request = createMockRequest({
+				auth: {
+					type: 'api-key',
+					apiKeyName: 'X-API-Key',
+					apiKeyValue: 'key123'
+				}
+			});
+			const options = { followRedirects: false, verifySSL: true, timeout: 30000 };
+
+			const args = builder.build(request, options);
+
+			expect(args).to.include('--header');
+			expect(args).to.include('X-API-Key: key123');
+		});
+
 		it('should add follow redirects flag', () => {
 			const request = createMockRequest({});
 			const options = { followRedirects: true, verifySSL: true, timeout: 30000 };
