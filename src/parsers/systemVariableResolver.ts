@@ -123,7 +123,7 @@ export class SystemVariableResolver {
         const min = parseInt(parts[0], 10);
         const max = parseInt(parts[1], 10);
         if (isNaN(min) || isNaN(max) || min >= max) return original;
-        return String(Math.floor(Math.random() * (max - min)) + min);
+        return String(crypto.randomInt(min, max));
     }
 
     /**
