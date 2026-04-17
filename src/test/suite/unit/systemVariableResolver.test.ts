@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import * as path from 'path';
+import * as fs from 'fs';
 import { SystemVariableResolver, resolveUrlEncodedVar } from '../../../parsers/systemVariableResolver';
 
 // Fixtures directory contains rest-client-dotenv.env (renamed to .env for tests via helper)
@@ -120,7 +121,6 @@ describe('SystemVariableResolver', () => {
 		it('should resolve variables from co-located .env file', () => {
 			// The fixtures dir has rest-client-dotenv.env — we need a real .env file
 			// Create a resolver pointing to fixtures with a temporary .env
-			const fs = require('fs');
 			const tmpDir = path.join(fixturesDir, '__dotenv_test__');
 			fs.mkdirSync(tmpDir, { recursive: true });
 			fs.writeFileSync(path.join(tmpDir, '.env'), 'API_HOST=httpbin.org\nAPI_TOKEN=secret123\n');
@@ -135,7 +135,6 @@ describe('SystemVariableResolver', () => {
 		});
 
 		it('should leave variable unresolved when key not found in .env', () => {
-			const fs = require('fs');
 			const tmpDir = path.join(fixturesDir, '__dotenv_test2__');
 			fs.mkdirSync(tmpDir, { recursive: true });
 			fs.writeFileSync(path.join(tmpDir, '.env'), 'FOO=bar\n');
@@ -253,7 +252,7 @@ describe('SystemVariableResolver', () => {
 			expect(result).to.match(/^\d{4}-\d{2}-\d{2}T/);
 			const parsed = new Date(result);
 			const tomorrow = new Date(Date.now() + 86400000);
-			expect(parsed.getDate()).to.equal(tomorrow.getUTCDate());
+			expect(parsed.getUTCDate()).to.equal(tomorrow.getUTCDate());
 		});
 
 		it('should apply negative offset to rfc1123 format', () => {
