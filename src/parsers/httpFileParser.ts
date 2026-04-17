@@ -297,9 +297,22 @@ export class HttpFileParser {
     }
 
     /**
+     * Check whether a URL still contains unresolved {{variable}} placeholders.
+     * If it does, we must NOT pass it through `new URL()` because the
+     * constructor will percent-encode the braces, mangling the template
+     * before the environment service gets a chance to resolve them.
+     */
+    private hasUnresolvedVariables(url: string): boolean {
+        return /\{\{.+?\}\}/.test(url);
+    }
+
+    /**
      * Extract query parameters from URL
      */
     private extractQueryParams(url: string): QueryParam[] {
+        if (this.hasUnresolvedVariables(url)) {
+            return this.extractQueryParamsManually(url);
+        }
         try {
             const urlObj = new URL(url, 'http://localhost');
             const params: QueryParam[] = [];
@@ -313,9 +326,34 @@ export class HttpFileParser {
     }
 
     /**
+     * Extract query parameters without using URL constructor
+     * (safe for URLs with unresolved {{variable}} placeholders)
+     */
+    private extractQueryParamsManually(url: string): QueryParam[] {
+        const qIndex = url.indexOf('?');
+        if (qIndex === -1) return [];
+
+        const queryString = url.substring(qIndex + 1);
+        return queryString.split('&').filter(Boolean).map(pair => {
+            const eqIndex = pair.indexOf('=');
+            if (eqIndex === -1) {
+                return { key: pair, value: '', enabled: true };
+            }
+            return {
+                key: pair.substring(0, eqIndex),
+                value: pair.substring(eqIndex + 1),
+                enabled: true
+            };
+        });
+    }
+
+    /**
      * Get URL without query parameters
      */
     private getUrlWithoutQueryParams(url: string): string {
+        if (this.hasUnresolvedVariables(url)) {
+            return url.split('?')[0];
+        }
         try {
             const urlObj = new URL(url, 'http://localhost');
             // If it was a relative URL, preserve the original format

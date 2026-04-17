@@ -2,6 +2,7 @@
  * Manages the webview panel for request building and response viewing
  */
 
+import * as path from 'path';
 import * as vscode from 'vscode';
 import type { HttpRequest } from '../types/request';
 import type { Environment, Folder } from '../types/collection';
@@ -13,6 +14,7 @@ import { HistoryService } from '../services/HistoryService';
 import { EnvironmentService } from '../services/EnvironmentService';
 import { EnvFileService } from '../services/EnvFileService';
 import { HttpFileParser } from '../parsers/httpFileParser';
+import { SystemVariableResolver } from '../parsers/systemVariableResolver';
 import { Logger } from '../utils/Logger';
 
 export class RequestPanelManager {
@@ -83,9 +85,10 @@ export class RequestPanelManager {
      */
     async runFromHttpFile(document: vscode.TextDocument, lineNumber: number): Promise<void> {
         const parser = new HttpFileParser();
-        const request = parser.parseAtPosition(document.getText(), lineNumber);
+        let request = parser.parseAtPosition(document.getText(), lineNumber);
 
         if (request) {
+            request = await this.resolveHttpFileVariables(request, document);
             this.openRequest(request);
             await this.sendRequest(request);
         } else {
@@ -98,15 +101,31 @@ export class RequestPanelManager {
      */
     async copyFromHttpFile(document: vscode.TextDocument, lineNumber: number): Promise<void> {
         const parser = new HttpFileParser();
-        const request = parser.parseAtPosition(document.getText(), lineNumber);
+        let request = parser.parseAtPosition(document.getText(), lineNumber);
 
         if (request) {
+            request = await this.resolveHttpFileVariables(request, document);
             const curlCommand = this.curlExecutor.buildCurlCommand(request);
             await vscode.env.clipboard.writeText(curlCommand);
             vscode.window.showInformationMessage('cURL command copied to clipboard');
         } else {
             vscode.window.showErrorMessage('No HTTP request found at cursor position');
         }
+    }
+
+    /**
+     * Resolve .http file variables:
+     * - System variables ({{$guid}}, {{$dotenv}}, etc.)
+     *
+     * URL-encode ({{%...}}) is handled later by the executor after env interpolation.
+     */
+    private async resolveHttpFileVariables(
+        request: HttpRequest,
+        document: vscode.TextDocument
+    ): Promise<HttpRequest> {
+        const dirPath = path.dirname(document.uri.fsPath);
+        request = new SystemVariableResolver(dirPath).resolveInRequest(request);
+        return request;
     }
 
     /**

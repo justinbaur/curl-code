@@ -1,0 +1,10 @@
+// Edge case: REST Client config with ONLY $shared variables and no named environments.
+// curl-code should detect this but NOT prompt for import (nothing to import).
+{
+    "rest-client.environmentVariables": {
+        "$shared": {
+            "version": "v1",
+            "contentType": "application/json"
+        }
+    }
+}

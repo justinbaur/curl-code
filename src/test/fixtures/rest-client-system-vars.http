@@ -1,0 +1,108 @@
+### -------------------------------------------------------
+### System variable showcase — all 7 supported types
+###
+### These use the {{$name}} / {{$name args}} syntax from
+### REST Client. No active environment needed; all values
+### are generated at request time.
+###
+### Manual test:
+### 1. Open this file in VS Code with curl-code active
+### 2. Run each request and inspect the resolved URL,
+###    headers, and body in the request viewer
+### -------------------------------------------------------
+
+### $guid — RFC 4122 v4 UUID
+# Each {{$guid}} produces a unique value
+GET https://httpbin.org/anything
+X-Guid-1: {{$guid}}
+X-Guid-2: {{$guid}}
+
+### $timestamp — UTC Unix timestamp (seconds)
+GET https://httpbin.org/anything
+X-Timestamp: {{$timestamp}}
+
+### $randomInt min max — random integer in [min, max)
+GET https://httpbin.org/anything
+X-Random-Small: {{$randomInt 1 10}}
+X-Random-Large: {{$randomInt 1000 9999}}
+
+### $datetime — formatted UTC datetime
+GET https://httpbin.org/anything
+X-Date-ISO: {{$datetime iso8601}}
+X-Date-RFC: {{$datetime rfc1123}}
+
+### $localDatetime — formatted local datetime
+GET https://httpbin.org/anything
+X-Local-ISO: {{$localDatetime iso8601}}
+X-Local-RFC: {{$localDatetime rfc1123}}
+
+### $processEnv — OS environment variable
+# Resolves to the value of the named env var, or stays
+# as {{$processEnv ...}} if the variable doesn't exist
+GET https://httpbin.org/anything
+X-User: {{$processEnv USER}}
+X-Home: {{$processEnv HOME}}
+X-Missing: {{$processEnv __THIS_SHOULD_STAY_UNRESOLVED__}}
+
+### $dotenv — .env file variable
+# Requires a .env file in the same directory as this file.
+# Copy rest-client-dotenv.env to .env to test.
+GET https://{{$dotenv API_HOST}}/anything
+Authorization: Bearer {{$dotenv API_TOKEN}}
+
+### All system variables in one request
+POST https://httpbin.org/anything
+Content-Type: application/json
+X-Request-Id: {{$guid}}
+
+{
+    "id": "{{$guid}}",
+    "timestamp": {{$timestamp}},
+    "random": {{$randomInt 1 100}},
+    "createdAt": "{{$datetime iso8601}}",
+    "localTime": "{{$localDatetime rfc1123}}",
+    "user": "{{$processEnv USER}}"
+}
+
+### $timestamp with offset — relative timestamps
+GET https://httpbin.org/anything
+X-Now: {{$timestamp}}
+X-One-Hour-Ago: {{$timestamp -1 h}}
+X-One-Hour-Ahead: {{$timestamp 1 h}}
+X-Yesterday: {{$timestamp -1 d}}
+X-Next-Week: {{$timestamp 1 w}}
+X-Thirty-Min-Ago: {{$timestamp -30 m}}
+
+### $datetime with offset — relative UTC datetimes
+GET https://httpbin.org/anything
+X-Now: {{$datetime iso8601}}
+X-Tomorrow-ISO: {{$datetime iso8601 1 d}}
+X-Yesterday-ISO: {{$datetime iso8601 -1 d}}
+X-Three-Hours-Ago-RFC: {{$datetime rfc1123 -3 h}}
+X-Next-Week-RFC: {{$datetime rfc1123 1 w}}
+
+### $localDatetime with offset — relative local datetimes
+GET https://httpbin.org/anything
+X-Now-Local: {{$localDatetime iso8601}}
+X-Tomorrow-Local: {{$localDatetime iso8601 1 d}}
+X-Thirty-Min-Ago-Local: {{$localDatetime iso8601 -30 m}}
+X-Next-Week-Local-RFC: {{$localDatetime rfc1123 1 w}}
+
+### URL-encoded system variables — {{%$var}} syntax
+# The {{%...}} wrapper percent-encodes the resolved value
+GET https://httpbin.org/anything?user={{%$processEnv USER}}&ts={{%$timestamp}}
+
+### Mixed: system variables + environment variables
+# Requires an active curl-code environment with host and apiKey
+POST {{host}}/api/data
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+X-Request-Id: {{$guid}}
+X-Timestamp: {{$timestamp}}
+
+{
+    "id": "{{$guid}}",
+    "value": {{$randomInt 1 1000}},
+    "createdAt": "{{$datetime iso8601}}",
+    "yesterday": "{{$datetime iso8601 -1 d}}"
+}

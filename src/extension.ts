@@ -13,6 +13,7 @@ import { CollectionService } from './services/CollectionService';
 import { HistoryService } from './services/HistoryService';
 import { EnvironmentService } from './services/EnvironmentService';
 import { EnvFileService } from './services/EnvFileService';
+import { RestClientImportService } from './services/RestClientImportService';
 import { CurlExecutor } from './curl/executor';
 import { Logger } from './utils/Logger';
 import { generateId } from './types/request';
@@ -31,6 +32,9 @@ export async function activate(context: vscode.ExtensionContext) {
     await historyService.initialize();
     await environmentService.initialize();
     await envFileService.initialize();
+
+    // REST Client environment import service
+    const restClientImportService = new RestClientImportService(context, environmentService);
 
     // Initialize CurlExecutor with EnvironmentService, CollectionService, and EnvFileService for variable interpolation
     const curlExecutor = new CurlExecutor(environmentService, collectionService, envFileService);
@@ -877,8 +881,44 @@ export async function activate(context: vscode.ExtensionContext) {
             const line = lineNumber ?? editor.selection.active.line;
 
             await requestPanelManager.copyFromHttpFile(document, line);
+        }),
+
+        // REST Client import command
+        vscode.commands.registerCommand('curl-code.importRestClientEnvironments', async () => {
+            const envs = restClientImportService.detectRestClientEnvironments();
+            if (!envs) {
+                vscode.window.showInformationMessage('No REST Client environments found in settings.');
+                return;
+            }
+
+            const names = Object.keys(envs).filter(k => k !== '$shared');
+            if (names.length === 0) {
+                vscode.window.showInformationMessage('No REST Client environments found (only $shared variables detected).');
+                return;
+            }
+
+            const items = names.map(name => ({
+                label: name,
+                description: `${Object.keys(envs[name]).length} variables`,
+                picked: true
+            }));
+
+            const selected = await vscode.window.showQuickPick(items, {
+                canPickMany: true,
+                placeHolder: 'Select REST Client environments to import'
+            });
+
+            if (selected && selected.length > 0) {
+                const count = await restClientImportService.importSelected(selected.map(s => s.label));
+                if (count > 0) {
+                    await restClientImportService.resetDismissal();
+                }
+            }
         })
     );
+
+    // Check for REST Client environments (non-blocking)
+    restClientImportService.checkAndPromptOnActivation();
 
     // Register CodeLens provider for .http files
     const codeLensProvider = new HttpFileCodeLensProvider();

@@ -1,0 +1,106 @@
+### -------------------------------------------------------
+### REST Client-style .http file for manual testing
+###
+### This file uses {{variable}} syntax that works with both
+### REST Client and curl-code after importing environments
+### from rest-client-settings.jsonc.
+###
+### Variables used here (host, apiKey, version, contentType)
+### come from the imported environment + $shared merge.
+###
+### Manual test:
+### 1. Copy rest-client-settings.jsonc content into VS Code
+###    settings.json under "rest-client.environmentVariables"
+### 2. Reload VS Code — import the environments when prompted
+### 3. Set "local" as the active environment
+### 4. Run each request below and verify the URL, headers,
+###    and body are resolved correctly
+### -------------------------------------------------------
+
+@baseUrl = {{host}}/{{version}}
+
+### List all users (environment vars + system vars)
+GET {{baseUrl}}/users
+Authorization: Bearer {{apiKey}}
+Content-Type: {{contentType}}
+User-Agent: {{userAgent}}
+X-Request-Id: {{$guid}}
+
+### Get a specific user
+GET {{baseUrl}}/users/42
+Authorization: Bearer {{apiKey}}
+Content-Type: {{contentType}}
+X-Timestamp: {{$timestamp}}
+
+### Create a new user (with system variables in body)
+POST {{baseUrl}}/users
+Authorization: Bearer {{apiKey}}
+Content-Type: {{contentType}}
+
+{
+    "id": "{{$guid}}",
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "role": "admin",
+    "createdAt": "{{$datetime iso8601}}"
+}
+
+### Update a user
+PUT {{baseUrl}}/users/42
+Authorization: Bearer {{apiKey}}
+Content-Type: {{contentType}}
+
+{
+    "name": "Jane Smith",
+    "updatedAt": "{{$datetime iso8601}}"
+}
+
+### Delete a user
+DELETE {{baseUrl}}/users/42
+Authorization: Bearer {{apiKey}}
+X-Request-Id: {{$guid}}
+
+### Health check (no auth needed, uses only $shared vars)
+GET {{host}}/health
+User-Agent: {{userAgent}}
+
+### System variables showcase (no environment needed)
+GET https://httpbin.org/anything
+X-Guid: {{$guid}}
+X-Timestamp: {{$timestamp}}
+X-Random: {{$randomInt 1 1000}}
+X-Date-UTC: {{$datetime iso8601}}
+X-Date-RFC: {{$datetime rfc1123}}
+X-Date-Local: {{$localDatetime iso8601}}
+X-Process-User: {{$processEnv USER}}
+
+### DateTime offsets — timestamps relative to now
+GET https://httpbin.org/anything
+X-Yesterday: {{$datetime iso8601 -1 d}}
+X-Tomorrow: {{$datetime iso8601 1 d}}
+X-One-Hour-Ago: {{$timestamp -1 h}}
+X-Next-Week: {{$datetime rfc1123 1 w}}
+X-Thirty-Min-Ago-Local: {{$localDatetime iso8601 -30 m}}
+
+### Prompt variables — interactive input at send time
+# @prompt searchTerm What do you want to search for?
+GET {{baseUrl}}/users/search?q={{%searchTerm}}
+Authorization: Bearer {{apiKey}}
+Content-Type: {{contentType}}
+
+### Login with prompted credentials
+# @prompt username
+# @prompt password Your account password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "{{username}}",
+    "password": "{{password}}"
+}
+
+### URL-encoded variables — {{%var}} percent-encodes the result
+# Useful for query params with spaces or special characters
+# @prompt query Search query
+GET {{baseUrl}}/search?q={{%query}}&tag={{%apiKey}}
+Authorization: Bearer {{apiKey}}

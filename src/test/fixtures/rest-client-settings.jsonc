@@ -1,0 +1,40 @@
+// Sample VS Code settings.json snippet for testing REST Client environment import.
+//
+// To test manually:
+// 1. Copy the "rest-client.environmentVariables" block below into your
+//    VS Code settings.json (User or Workspace level).
+// 2. Open curl-code — you should see a prompt:
+//    "Detected 3 REST Client environment(s). Import into curl-code?"
+// 3. Click "Import" to pull them in, or use the Command Palette:
+//    "curl-code: Import REST Client Environments"
+// 4. Set "local" as the active environment.
+// 5. Open rest-client-api.http and run requests — environment variables
+//    ({{host}}, {{apiKey}}) and system variables ({{$guid}}, {{$timestamp}})
+//    should all resolve.
+//
+// After import, each named environment (local, staging, production) will
+// appear as a curl-code global environment with $shared variables merged in.
+{
+    "rest-client.environmentVariables": {
+        "$shared": {
+            "version": "v2",
+            "contentType": "application/json",
+            "userAgent": "curl-code-test/1.0"
+        },
+        "local": {
+            "host": "http://localhost:3000",
+            "apiKey": "dev-key-12345",
+            "dbHost": "localhost:5432"
+        },
+        "staging": {
+            "host": "https://staging-api.example.com",
+            "apiKey": "staging-key-67890",
+            "dbHost": "staging-db.internal:5432"
+        },
+        "production": {
+            "host": "https://api.example.com",
+            "apiKey": "prod-key-REDACTED",
+            "dbHost": "prod-db.internal:5432"
+        }
+    }
+}
