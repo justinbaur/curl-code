@@ -1,0 +1,41 @@
+### -------------------------------------------------------
+### REST Client .http file that uses $dotenv syntax
+###
+### curl-code resolves {{$dotenv VAR}} from a .env file in
+### the same directory as this .http file. Place
+### rest-client-dotenv.env alongside this file (renamed to
+### .env) to test resolution.
+###
+### Manual test:
+### 1. Copy rest-client-dotenv.env to .env in the same dir
+### 2. Open this file in VS Code with curl-code active
+### 3. Run the first request — URL should resolve to
+###    https://httpbin.org/v1/status
+### 4. Run the second request — body should contain
+###    "source": "manual-import"
+### -------------------------------------------------------
+
+### Request using $dotenv variables
+GET https://{{$dotenv API_HOST}}/v1/status
+Authorization: Bearer {{$dotenv API_TOKEN}}
+X-Request-Id: {{$dotenv REQUEST_PREFIX}}-001
+
+### Mixed: $dotenv + regular environment variables
+# Requires an active curl-code environment with host, contentType, version
+POST https://{{host}}/v1/data
+Authorization: Bearer {{$dotenv API_TOKEN}}
+Content-Type: {{contentType}}
+
+{
+    "source": "{{$dotenv DATA_SOURCE}}",
+    "version": "{{version}}"
+}
+
+### $dotenv with missing key (should stay unresolved)
+GET https://{{$dotenv API_HOST}}/v1/check
+X-Missing: {{$dotenv THIS_KEY_DOES_NOT_EXIST}}
+
+### URL-encoded $dotenv — {{%$dotenv VAR}} syntax
+# The DB_CONNECTION value contains special chars (://@) that
+# should be percent-encoded when used in a query parameter
+GET https://{{$dotenv API_HOST}}/v1/info?conn={{%$dotenv DB_CONNECTION}}&src={{%$dotenv DATA_SOURCE}}

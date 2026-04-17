@@ -580,15 +580,38 @@ Authorization: Bearer {{token}}`;
 			expect(requests[0].headers[0].value).to.equal('Bearer secret');
 		});
 
-		it('should leave unresolved variables as-is', () => {
+		it('should leave unresolved variables as-is without percent-encoding', () => {
 			const content = `GET https://api.example.com/{{endpoint}}`;
 
 			const requests = parser.parseAll(content);
 
-			// Query params are extracted, but the path with unresolved variable stays
-			// URL parsing may encode the curly braces
-			const url = requests[0].url;
-			expect(url.includes('/{{endpoint}}') || url.includes('%7B%7Bendpoint%7D%7D')).to.be.true;
+			expect(requests[0].url).to.equal('https://api.example.com/{{endpoint}}');
+		});
+
+		it('should preserve unresolved environment variables in file-level variable values', () => {
+			const content = `@baseUrl = {{host}}/{{version}}
+
+### List all users
+GET {{baseUrl}}/users
+Authorization: Bearer {{apiKey}}`;
+
+			const requests = parser.parseAll(content);
+
+			// {{host}} and {{version}} are environment variables, not file-level —
+			// they must pass through unmangled so the executor can resolve them later
+			expect(requests[0].url).to.equal('{{host}}/{{version}}/users');
+			expect(requests[0].headers[0].value).to.equal('Bearer {{apiKey}}');
+		});
+
+		it('should extract query params from URLs with unresolved variables', () => {
+			const content = `GET {{host}}/users?page=1&limit=10`;
+
+			const requests = parser.parseAll(content);
+
+			expect(requests[0].url).to.equal('{{host}}/users');
+			expect(requests[0].queryParams).to.have.lengthOf(2);
+			expect(requests[0].queryParams[0]).to.deep.include({ key: 'page', value: '1' });
+			expect(requests[0].queryParams[1]).to.deep.include({ key: 'limit', value: '10' });
 		});
 	});
 });

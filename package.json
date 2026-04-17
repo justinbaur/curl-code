@@ -2,7 +2,7 @@
   "name": "curl-code",
   "displayName": "curl-code",
   "description": "HTTP client using cURL backend for VS Code",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "publisher": "JustinBaur",
   "license": "MIT",
   "private": true,
@@ -124,7 +124,7 @@
       },
       {
         "view": "curl-code.environments",
-        "contents": "No environments configured.\nEnvironments let you define variables like {{baseUrl}} to reuse across requests.\n[New Environment](command:curl-code.newEnvironment)\n[Import .env File](command:curl-code.importEnvFile)"
+        "contents": "No environments configured.\nEnvironments let you define variables like {{baseUrl}} to reuse across requests.\n[New Environment](command:curl-code.newEnvironment)\n[Import .env File](command:curl-code.importEnvFile)\n[Import REST Client Environments](command:curl-code.importRestClientEnvironments)"
       }
     ],
     "commands": [
@@ -274,6 +274,12 @@
         "command": "curl-code.openEnvFile",
         "title": "Open .env File",
         "icon": "$(go-to-file)",
+        "category": "curl-code"
+      },
+      {
+        "command": "curl-code.importRestClientEnvironments",
+        "title": "Import REST Client Environments",
+        "icon": "$(cloud-download)",
         "category": "curl-code"
       }
     ],

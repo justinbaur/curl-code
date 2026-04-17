@@ -1,0 +1,16 @@
+// Edge case: environment-specific variables override $shared values.
+// After import, the "local" environment should have host=localhost:8080
+// (not the $shared host=api.example.com) and version=v1 from $shared.
+{
+    "rest-client.environmentVariables": {
+        "$shared": {
+            "host": "https://api.example.com",
+            "version": "v1",
+            "timeout": "30"
+        },
+        "local": {
+            "host": "http://localhost:8080",
+            "debug": "true"
+        }
+    }
+}

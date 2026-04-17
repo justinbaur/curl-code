@@ -8,6 +8,7 @@ import { childProcessFacade } from '../utils/childProcessWrapper';
 import type { HttpRequest, HttpResponse } from '../types/request';
 import { ArgumentBuilder, type CurlOptions } from './argumentBuilder';
 import { ResponseParser } from './responseParser';
+import { resolveUrlEncodedVarsInRequest } from '../parsers/systemVariableResolver';
 import type { EnvironmentService } from '../services/EnvironmentService';
 import type { CollectionService } from '../services/CollectionService';
 import type { EnvFileService } from '../services/EnvFileService';
@@ -324,7 +325,9 @@ export class CurlExecutor {
             } : undefined,
         };
 
-        return interpolated;
+        // Final pass: resolve {{%varName}} URL-encode tokens.
+        // These survive the earlier passes intact and are now resolved + encoded.
+        return resolveUrlEncodedVarsInRequest(interpolated, resolveVar);
     }
 
     /**
