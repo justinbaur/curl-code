@@ -35,7 +35,7 @@ export class HistoryTreeProvider implements vscode.TreeDataProvider<HistoryEntry
         item.command = {
             command: 'curl-code.openRequestBuilder',
             title: 'Open Request',
-            arguments: [element.request]
+            arguments: [element]
         };
 
         return item;
@@ -70,9 +70,9 @@ export class HistoryTreeProvider implements vscode.TreeDataProvider<HistoryEntry
     private getDescription(entry: HistoryEntry): string {
         const time = this.formatTime(entry.timestamp);
         if (entry.response) {
-            return `${entry.response.status} - ${time}`;
+            return `${entry.response.status} · ${time}`;
         } else if (entry.error) {
-            return `Error - ${time}`;
+            return `Error · ${time}`;
         }
         return time;
     }

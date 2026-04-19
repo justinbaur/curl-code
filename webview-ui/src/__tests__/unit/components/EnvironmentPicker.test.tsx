@@ -48,7 +48,7 @@ describe('EnvironmentPicker', () => {
 			render(<EnvironmentPicker />);
 
 			expect(screen.getByRole('combobox')).toBeInTheDocument();
-			expect(screen.getByLabelText(/environment/i)).toBeInTheDocument();
+			expect(screen.getByLabelText(/env/i)).toBeInTheDocument();
 		});
 
 		it('should render "No Environment" option', () => {
@@ -61,7 +61,7 @@ describe('EnvironmentPicker', () => {
 
 			render(<EnvironmentPicker />);
 
-			expect(screen.getByRole('option', { name: 'No Environment' })).toBeInTheDocument();
+			expect(screen.getByRole('option', { name: '— none —' })).toBeInTheDocument();
 		});
 
 		it('should render all environments as options', () => {
@@ -75,8 +75,8 @@ describe('EnvironmentPicker', () => {
 
 			render(<EnvironmentPicker />);
 
-			expect(screen.getByRole('option', { name: 'Production (1 vars)' })).toBeInTheDocument();
-			expect(screen.getByRole('option', { name: 'Development (2 vars)' })).toBeInTheDocument();
+			expect(screen.getByRole('option', { name: 'Production (1)' })).toBeInTheDocument();
+			expect(screen.getByRole('option', { name: 'Development (2)' })).toBeInTheDocument();
 		});
 
 		it('should show correct variable count in options', () => {
@@ -93,7 +93,7 @@ describe('EnvironmentPicker', () => {
 
 			render(<EnvironmentPicker />);
 
-			expect(screen.getByRole('option', { name: 'Staging (3 vars)' })).toBeInTheDocument();
+			expect(screen.getByRole('option', { name: 'Staging (3)' })).toBeInTheDocument();
 		});
 
 		it('should select active environment', () => {
@@ -125,7 +125,7 @@ describe('EnvironmentPicker', () => {
 			expect(select).toHaveValue('');
 		});
 
-		it('should render globe icon', () => {
+		it('should render "Env" label', () => {
 			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
 				environments: [
 					{ id: 'env1', name: 'Production', variables: [] },
@@ -133,10 +133,9 @@ describe('EnvironmentPicker', () => {
 				activeEnvironmentId: null,
 			} as any);
 
-			const { container } = render(<EnvironmentPicker />);
+			render(<EnvironmentPicker />);
 
-			const icon = container.querySelector('.codicon-globe');
-			expect(icon).toBeInTheDocument();
+			expect(screen.getByText('Env')).toBeInTheDocument();
 		});
 	});
 
@@ -244,7 +243,7 @@ describe('EnvironmentPicker', () => {
 			expect(options).toHaveLength(21); // "No Environment" + 20 environments
 		});
 
-		it('should handle environment with zero variables showing as (0 vars)', () => {
+		it('should handle environment with zero variables showing just the name', () => {
 			vi.mocked(environmentStore.useEnvironmentStore).mockReturnValue({
 				environments: [
 					{ id: 'env1', name: 'Empty', variables: [] },
@@ -254,7 +253,7 @@ describe('EnvironmentPicker', () => {
 
 			render(<EnvironmentPicker />);
 
-			expect(screen.getByRole('option', { name: 'Empty (0 vars)' })).toBeInTheDocument();
+			expect(screen.getByRole('option', { name: 'Empty' })).toBeInTheDocument();
 		});
 
 		it('should handle environment name with special characters', () => {
@@ -267,7 +266,7 @@ describe('EnvironmentPicker', () => {
 
 			render(<EnvironmentPicker />);
 
-			expect(screen.getByRole('option', { name: 'Prod & Dev (Combined) (0 vars)' })).toBeInTheDocument();
+			expect(screen.getByRole('option', { name: 'Prod & Dev (Combined)' })).toBeInTheDocument();
 		});
 	});
 });

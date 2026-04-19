@@ -13,17 +13,26 @@ interface MethodSelectorProps {
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
-export function MethodSelector({ value, onChange }: MethodSelectorProps) {
-  const getMethodClass = (method: HttpMethod): string => {
-    return `method-${method.toLowerCase()}`;
-  };
+const METHOD_COLORS: Record<HttpMethod, string> = {
+  GET: '#61affe',
+  POST: '#49cc90',
+  PUT: '#fca130',
+  PATCH: '#50e3c2',
+  DELETE: '#f93e3e',
+  HEAD: '#9012fe',
+  OPTIONS: '#0d5aa7',
+};
 
+export function MethodSelector({ value, onChange }: MethodSelectorProps) {
   return (
-    <div className="method-selector">
+    <div
+      className="method-selector"
+      style={{ '--method-color': METHOD_COLORS[value] } as React.CSSProperties}
+    >
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as HttpMethod)}
-        className={getMethodClass(value)}
+        className={`method-${value.toLowerCase()}`}
       >
         {METHODS.map((method) => (
           <option key={method} value={method}>

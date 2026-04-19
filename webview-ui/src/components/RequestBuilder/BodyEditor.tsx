@@ -226,9 +226,8 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
         {body.type === 'json' && (
           <button
             type="button"
-            className="btn-icon"
+            className="format-button"
             onClick={() => formatJson()}
-            style={{ marginLeft: 8 }}
             title="Format JSON"
           >
             Format

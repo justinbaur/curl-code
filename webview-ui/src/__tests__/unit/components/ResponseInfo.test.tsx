@@ -21,9 +21,8 @@ describe('ResponseInfo', () => {
 			const response = createMockResponse();
 			render(<ResponseInfo response={response} />);
 
-			expect(screen.getByText('Status:')).toBeInTheDocument();
-			expect(screen.getByText('Time:')).toBeInTheDocument();
-			expect(screen.getByText('Size:')).toBeInTheDocument();
+			expect(screen.getByText('Time')).toBeInTheDocument();
+			expect(screen.getByText('Size')).toBeInTheDocument();
 		});
 
 		it('should render status code and text', () => {
@@ -45,7 +44,7 @@ describe('ResponseInfo', () => {
 			const { container } = render(<ResponseInfo response={response} />);
 
 			const items = container.querySelectorAll('.response-info-item');
-			expect(items).toHaveLength(3); // Status, Time, Size
+			expect(items).toHaveLength(2); // Time, Size (status is a standalone pill)
 		});
 
 		it('should apply response-info-label class to labels', () => {
@@ -53,7 +52,7 @@ describe('ResponseInfo', () => {
 			const { container } = render(<ResponseInfo response={response} />);
 
 			const labels = container.querySelectorAll('.response-info-label');
-			expect(labels).toHaveLength(3);
+			expect(labels).toHaveLength(2); // Time, Size labels
 		});
 
 		it('should apply status-code class to status', () => {

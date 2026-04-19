@@ -7,6 +7,7 @@ export interface Tab {
   id: string;
   label: string;
   badge?: number;
+  dot?: boolean;
 }
 
 interface TabPanelProps {
@@ -27,6 +28,7 @@ export function TabPanel({ tabs, activeTab, onTabChange, rightContent }: TabPane
           onClick={() => onTabChange(tab.id)}
         >
           {tab.label}
+          {tab.dot && <span className="tab-dot" />}
           {tab.badge !== undefined && tab.badge > 0 && (
             <span className="tab-badge">{tab.badge}</span>
           )}

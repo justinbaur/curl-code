@@ -29,19 +29,17 @@ export function ResponseInfo({ response }: ResponseInfoProps) {
 
   return (
     <div className="response-info">
+      <span className={`status-code ${getStatusClass(response.status)}`}>
+        {response.status} {response.statusText}
+      </span>
+      <span className="response-info-separator" />
       <div className="response-info-item">
-        <span className="response-info-label">Status:</span>
-        <span className={`status-code ${getStatusClass(response.status)}`}>
-          {response.status} {response.statusText}
-        </span>
+        <span className="response-info-label">Time</span>
+        <span className="response-info-value">{formatTime(response.time)}</span>
       </div>
       <div className="response-info-item">
-        <span className="response-info-label">Time:</span>
-        <span>{formatTime(response.time)}</span>
-      </div>
-      <div className="response-info-item">
-        <span className="response-info-label">Size:</span>
-        <span>{formatSize(response.size)}</span>
+        <span className="response-info-label">Size</span>
+        <span className="response-info-value">{formatSize(response.size)}</span>
       </div>
     </div>
   );

@@ -148,12 +148,16 @@ export default function App() {
       <div className="app-top-bar">
         <EnvironmentPicker />
         <div className="top-bar-actions">
-          <button type="button" className="toolbar-button" onClick={handleSave}>
-            {isDirty ? '* Save' : 'Save'}
-          </button>
-          <button type="button" className="toolbar-button" onClick={handleSaveAs}>
-            Save As
-          </button>
+          <div className="toolbar-group">
+            <button type="button" className="toolbar-button" onClick={handleSave}>
+              {isDirty && <span className="dirty-dot" />}
+              Save
+            </button>
+            <button type="button" className="toolbar-button" onClick={handleSaveAs}>
+              Save As
+            </button>
+          </div>
+          <span className="toolbar-divider" />
           <button type="button" className="toolbar-button" onClick={handleCopyAsCurl}>
             Copy as cURL
           </button>
@@ -163,8 +167,7 @@ export default function App() {
             onClick={toggleLayout}
             title={layout === 'horizontal' ? 'Switch to side-by-side layout' : 'Switch to stacked layout'}
           >
-            {layout === 'horizontal' ? '\u2B0C' : '\u2B0D'}{' '}
-            {layout === 'horizontal' ? 'Stacked' : 'Side by Side'}
+            {layout === 'horizontal' ? '↔ Split' : '↕ Stack'}
           </button>
         </div>
       </div>

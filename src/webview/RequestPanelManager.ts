@@ -4,7 +4,7 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import type { HttpRequest } from '../types/request';
+import type { HttpRequest, HttpResponse } from '../types/request';
 import type { Environment, Folder } from '../types/collection';
 import type { ExtensionToWebviewMessage, WebviewToExtensionMessage } from '../types/messages';
 import { createEmptyRequest, normalizeRequest, generateId } from '../types/request';
@@ -19,6 +19,7 @@ import { Logger } from '../utils/Logger';
 
 export class RequestPanelManager {
     private panels = new Map<string, vscode.WebviewPanel>();
+    private pendingResponses = new Map<string, HttpResponse>();
     private disposables: vscode.Disposable[] = [];
     private logger = Logger.getInstance();
 
@@ -45,6 +46,16 @@ export class RequestPanelManager {
      */
     openNewRequest(): void {
         this.createPanel(createEmptyRequest());
+    }
+
+    /**
+     * Open a history entry — restores both the request and its previous response
+     */
+    openHistoryEntry(request: HttpRequest, response?: HttpResponse): void {
+        if (response) {
+            this.pendingResponses.set(request.id, response);
+        }
+        this.openRequest(request);
     }
 
     /**
@@ -218,11 +229,17 @@ export class RequestPanelManager {
             this.logger.debug(`Handling webview message: ${message.type}`);
 
             switch (message.type) {
-                case 'ready':
+                case 'ready': {
                     this.logger.info('Webview ready, sending initial data');
                     this.sendMessageTo(panel, { type: 'loadRequest', request: currentRequest });
                     this.sendEnvironments(panel);
+                    const pendingResponse = this.pendingResponses.get(currentRequest.id);
+                    if (pendingResponse) {
+                        this.sendMessageTo(panel, { type: 'responseReceived', response: pendingResponse });
+                        this.pendingResponses.delete(currentRequest.id);
+                    }
                     break;
+                }
 
                 case 'sendRequest':
                     setCurrentRequest(message.request);
