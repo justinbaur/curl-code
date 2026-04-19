@@ -83,12 +83,12 @@ export function RequestBuilder({
     {
       id: 'body',
       label: 'Body',
-      badge: request.body.type !== 'none' ? 1 : 0,
+      dot: request.body.type !== 'none',
     },
     {
       id: 'auth',
       label: 'Auth',
-      badge: request.auth.type !== 'none' ? 1 : 0,
+      dot: request.auth.type !== 'none',
     },
     {
       id: 'advanced',

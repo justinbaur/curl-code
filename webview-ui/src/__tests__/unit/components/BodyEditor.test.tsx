@@ -123,6 +123,16 @@ describe('BodyEditor', () => {
 			expect(formatButton).toBeInTheDocument();
 		});
 
+		it('should use format-button class on the format button', () => {
+			const body: HttpBody = { type: 'json', content: '{}' };
+			const onChange = vi.fn();
+			render(<BodyEditor body={body} onChange={onChange} />);
+
+			const formatButton = screen.getByRole('button', { name: /format/i });
+			expect(formatButton).toHaveClass('format-button');
+			expect(formatButton).not.toHaveClass('btn-icon');
+		});
+
 		it('should call onChange when content changes via Monaco', () => {
 			const body: HttpBody = { type: 'json', content: '' };
 			const onChange = vi.fn();

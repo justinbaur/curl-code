@@ -19,10 +19,7 @@ export function EnvironmentPicker() {
   if (environments.length === 0) {
     return (
       <div className="environment-picker">
-        <span className="environment-label">
-          <span className="codicon codicon-globe"></span>
-          No Environments
-        </span>
+        <span className="environment-label">No Environments</span>
       </div>
     );
   }
@@ -30,8 +27,7 @@ export function EnvironmentPicker() {
   return (
     <div className="environment-picker">
       <label htmlFor="environment-select" className="environment-label">
-        <span className="codicon codicon-globe"></span>
-        Environment:
+        Env
       </label>
       <select
         id="environment-select"
@@ -39,10 +35,10 @@ export function EnvironmentPicker() {
         value={activeEnvironmentId || ''}
         onChange={handleChange}
       >
-        <option value="">No Environment</option>
+        <option value="">— none —</option>
         {environments.map((env) => (
           <option key={env.id} value={env.id}>
-            {env.name} ({env.variables.length} vars)
+            {env.name}{env.variables.length > 0 ? ` (${env.variables.length})` : ''}
           </option>
         ))}
       </select>

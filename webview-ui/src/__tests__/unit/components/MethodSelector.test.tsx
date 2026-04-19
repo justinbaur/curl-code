@@ -155,6 +155,43 @@ describe('MethodSelector', () => {
 		});
 	});
 
+	describe('method color CSS variable', () => {
+		it('should set --method-color on the wrapper for GET', () => {
+			const onChange = vi.fn();
+			const { container } = render(<MethodSelector value="GET" onChange={onChange} />);
+			const wrapper = container.querySelector('.method-selector') as HTMLElement;
+			expect(wrapper.style.getPropertyValue('--method-color')).toBe('#61affe');
+		});
+
+		it('should set --method-color on the wrapper for POST', () => {
+			const onChange = vi.fn();
+			const { container } = render(<MethodSelector value="POST" onChange={onChange} />);
+			const wrapper = container.querySelector('.method-selector') as HTMLElement;
+			expect(wrapper.style.getPropertyValue('--method-color')).toBe('#49cc90');
+		});
+
+		it('should set --method-color on the wrapper for DELETE', () => {
+			const onChange = vi.fn();
+			const { container } = render(<MethodSelector value="DELETE" onChange={onChange} />);
+			const wrapper = container.querySelector('.method-selector') as HTMLElement;
+			expect(wrapper.style.getPropertyValue('--method-color')).toBe('#f93e3e');
+		});
+
+		it('should update --method-color when method prop changes', () => {
+			const onChange = vi.fn();
+			const { container, rerender } = render(<MethodSelector value="GET" onChange={onChange} />);
+			const wrapper = container.querySelector('.method-selector') as HTMLElement;
+
+			expect(wrapper.style.getPropertyValue('--method-color')).toBe('#61affe');
+
+			rerender(<MethodSelector value="PUT" onChange={onChange} />);
+			expect(wrapper.style.getPropertyValue('--method-color')).toBe('#fca130');
+
+			rerender(<MethodSelector value="PATCH" onChange={onChange} />);
+			expect(wrapper.style.getPropertyValue('--method-color')).toBe('#50e3c2');
+		});
+	});
+
 	describe('accessibility', () => {
 		it('should be keyboard accessible', async () => {
 			const user = userEvent.setup();

@@ -17,6 +17,7 @@ import { RestClientImportService } from './services/RestClientImportService';
 import { CurlExecutor } from './curl/executor';
 import { Logger } from './utils/Logger';
 import { generateId } from './types/request';
+import type { HistoryEntry, HttpRequest } from './types/request';
 
 export async function activate(context: vscode.ExtensionContext) {
     const logger = Logger.getInstance();
@@ -154,8 +155,12 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
 
-        vscode.commands.registerCommand('curl-code.openRequestBuilder', (request) => {
-            requestPanelManager.openRequest(request);
+        vscode.commands.registerCommand('curl-code.openRequestBuilder', (arg: HistoryEntry | HttpRequest) => {
+            if ('timestamp' in arg) {
+                requestPanelManager.openHistoryEntry(arg.request, arg.response);
+            } else {
+                requestPanelManager.openRequest(arg);
+            }
         }),
 
         vscode.commands.registerCommand('curl-code.copyAsCurl', async (item) => {

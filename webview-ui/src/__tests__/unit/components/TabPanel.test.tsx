@@ -75,6 +75,58 @@ describe('TabPanel', () => {
 		});
 	});
 
+	describe('dot indicators', () => {
+		it('should render dot when dot is true', () => {
+			const tabs: Tab[] = [{ id: 'tab1', label: 'Tab 1', dot: true }];
+			const onTabChange = vi.fn();
+			const { container } = render(
+				<TabPanel tabs={tabs} activeTab="tab1" onTabChange={onTabChange} />
+			);
+
+			expect(container.querySelector('.tab-dot')).toBeInTheDocument();
+		});
+
+		it('should not render dot when dot is false', () => {
+			const tabs: Tab[] = [{ id: 'tab1', label: 'Tab 1', dot: false }];
+			const onTabChange = vi.fn();
+			const { container } = render(
+				<TabPanel tabs={tabs} activeTab="tab1" onTabChange={onTabChange} />
+			);
+
+			expect(container.querySelector('.tab-dot')).not.toBeInTheDocument();
+		});
+
+		it('should not render dot when dot is undefined', () => {
+			const tabs: Tab[] = [{ id: 'tab1', label: 'Tab 1' }];
+			const onTabChange = vi.fn();
+			const { container } = render(
+				<TabPanel tabs={tabs} activeTab="tab1" onTabChange={onTabChange} />
+			);
+
+			expect(container.querySelector('.tab-dot')).not.toBeInTheDocument();
+		});
+
+		it('should render dot inside the tab button', () => {
+			const tabs: Tab[] = [{ id: 'tab1', label: 'Tab 1', dot: true }];
+			const onTabChange = vi.fn();
+			render(<TabPanel tabs={tabs} activeTab="tab1" onTabChange={onTabChange} />);
+
+			const button = screen.getByRole('button', { name: /Tab 1/ });
+			expect(button.querySelector('.tab-dot')).toBeInTheDocument();
+		});
+
+		it('should render both dot and badge independently', () => {
+			const tabs: Tab[] = [{ id: 'tab1', label: 'Tab 1', dot: true, badge: 5 }];
+			const onTabChange = vi.fn();
+			const { container } = render(
+				<TabPanel tabs={tabs} activeTab="tab1" onTabChange={onTabChange} />
+			);
+
+			expect(container.querySelector('.tab-dot')).toBeInTheDocument();
+			expect(container.querySelector('.tab-badge')).toBeInTheDocument();
+		});
+	});
+
 	describe('badges', () => {
 		it('should render badge when badge count is greater than 0', () => {
 			const tabs: Tab[] = [{ id: 'tab1', label: 'Tab 1', badge: 5 }];

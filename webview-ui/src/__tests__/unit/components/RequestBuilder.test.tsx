@@ -67,6 +67,7 @@ vi.mock('../../../components/common/TabPanel', () => ({
 					aria-current={activeTab === tab.id ? 'page' : undefined}
 				>
 					{tab.label}
+					{tab.dot && <span data-testid={`dot-${tab.id}`} />}
 					{tab.badge > 0 && <span data-testid={`badge-${tab.id}`}>{tab.badge}</span>}
 				</button>
 			))}
@@ -344,16 +345,16 @@ describe('RequestBuilder', () => {
 			expect(screen.getByTestId('badge-headers')).toHaveTextContent('2');
 		});
 
-		it('should show badge for non-none body', () => {
+		it('should show dot indicator for non-none body', () => {
 			renderBuilder({ request: createMockRequest({ body: { type: 'json', content: '{}' } }) });
 
-			expect(screen.getByTestId('badge-body')).toHaveTextContent('1');
+			expect(screen.getByTestId('dot-body')).toBeInTheDocument();
 		});
 
-		it('should show badge for non-none auth', () => {
+		it('should show dot indicator for non-none auth', () => {
 			renderBuilder({ request: createMockRequest({ auth: { type: 'bearer', token: 'abc123' } }) });
 
-			expect(screen.getByTestId('badge-auth')).toHaveTextContent('1');
+			expect(screen.getByTestId('dot-auth')).toBeInTheDocument();
 		});
 
 		it('should not show badge when no params are enabled', () => {
