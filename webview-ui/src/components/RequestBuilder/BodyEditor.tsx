@@ -20,6 +20,24 @@ const BODY_TYPES: { value: HttpBody['type']; label: string }[] = [
   { value: 'form-data', label: 'Form Data' },
 ];
 
+function getMonacoTheme(): string {
+  const cl = document.body.classList;
+  if (cl.contains('vscode-high-contrast-light')) return 'hc-light';
+  if (cl.contains('vscode-high-contrast')) return 'hc-black';
+  if (cl.contains('vscode-light')) return 'vs';
+  return 'vs-dark';
+}
+
+function useVSCodeTheme(): string {
+  const [theme, setTheme] = useState(getMonacoTheme);
+  useEffect(() => {
+    const observer = new MutationObserver(() => setTheme(getMonacoTheme()));
+    observer.observe(document.body, { attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+  return theme;
+}
+
 /** Map body types to Monaco language identifiers */
 function bodyTypeToLanguage(type: HttpBody['type']): string {
   switch (type) {
@@ -43,6 +61,7 @@ interface ContextMenuState {
 export function BodyEditor({ body, onChange }: BodyEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const monacoTheme = useVSCodeTheme();
 
   const handleTypeChange = (type: HttpBody['type']) => {
     onChange({ ...body, type });
@@ -240,7 +259,7 @@ export function BodyEditor({ body, onChange }: BodyEditorProps) {
           <Editor
             value={body.content}
             language={bodyTypeToLanguage(body.type)}
-            theme="vs-dark"
+            theme={monacoTheme}
             onChange={handleContentChange}
             onMount={handleEditorMount}
             options={{
