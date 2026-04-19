@@ -519,6 +519,121 @@ describe('CollectionService Integration', () => {
 			expect(stored).to.equal('super-secret-key');
 		});
 
+		it('should redact request auth credentials from JSON written to disk', async () => {
+			const collection = createCollectionWithSecret({
+				id: 'col_auth_test',
+				name: 'Auth Test',
+				requests: [createMockRequest({ id: 'req_1', auth: { type: 'basic', username: 'alice', password: 'secret123' } })],
+				environments: []
+			});
+			await service.importCollection(JSON.stringify(collection));
+
+			const writeCall = fsStub.writeFile.lastCall;
+			const written = JSON.parse(writeCall.args[1]);
+			const req = written.requests[0];
+			expect(req.auth.username).to.equal('alice');
+			expect(req.auth.password).to.be.undefined;
+		});
+
+		it('should persist request auth credentials to SecretStorage on save', async () => {
+			const collection = createCollectionWithSecret({
+				id: 'col_auth_persist',
+				name: 'Auth Persist',
+				requests: [createMockRequest({ id: 'req_1', auth: { type: 'basic', username: 'alice', password: 'secret123' } })],
+				environments: []
+			});
+			const imported = await service.importCollection(JSON.stringify(collection));
+
+			const stored = await context.secrets.get(`curl-code.request-auth.${imported!.id}.req_1.password`);
+			expect(stored).to.equal('secret123');
+		});
+
+		it('should persist bearer token to SecretStorage on save', async () => {
+			const collection = createCollectionWithSecret({
+				id: 'col_bearer_test',
+				name: 'Bearer Test',
+				requests: [createMockRequest({ id: 'req_2', auth: { type: 'bearer', token: 'my-token-xyz' } })],
+				environments: []
+			});
+			const imported = await service.importCollection(JSON.stringify(collection));
+
+			const stored = await context.secrets.get(`curl-code.request-auth.${imported!.id}.req_2.token`);
+			expect(stored).to.equal('my-token-xyz');
+			const written = JSON.parse(fsStub.writeFile.lastCall.args[1]);
+			expect(written.requests[0].auth.token).to.be.undefined;
+		});
+
+		it('should restore request auth credentials from SecretStorage on load', async () => {
+			await context.secrets.store('curl-code.request-auth.col_load_test.req_1.password', 'restored-pass');
+
+			const collectionOnDisk: Collection = {
+				id: 'col_load_test',
+				name: 'Load Test',
+				requests: [createMockRequest({ id: 'req_1', auth: { type: 'basic', username: 'alice' } })],
+				folders: [],
+				variables: [],
+				createdAt: 1000,
+				updatedAt: 1000
+			};
+
+			fsStub.readdir.resolves(['col_load_test.json']);
+			fsStub.readFile.resolves(JSON.stringify(collectionOnDisk));
+
+			await service.initialize();
+
+			const loaded = service.getCollection('col_load_test');
+			expect(loaded!.requests[0].auth.password).to.equal('restored-pass');
+		});
+
+		it('should redact request auth credentials in exported JSON', async () => {
+			const collection = createCollectionWithSecret({
+				id: 'col_export_auth',
+				name: 'Export Auth',
+				requests: [createMockRequest({ id: 'req_1', auth: { type: 'basic', username: 'bob', password: 'top-secret' } })],
+				environments: []
+			});
+			const imported = await service.importCollection(JSON.stringify(collection));
+
+			const exported = await service.exportCollection(imported!.id);
+			const parsed = JSON.parse(exported!);
+			expect(parsed.requests[0].auth.username).to.equal('bob');
+			expect(parsed.requests[0].auth.password).to.be.undefined;
+		});
+
+		it('should clean up request auth secrets when deleting a collection', async () => {
+			const collection = createCollectionWithSecret({
+				id: 'col_delete_auth',
+				name: 'Delete Auth',
+				requests: [createMockRequest({ id: 'req_1', auth: { type: 'bearer', token: 'delete-me' } })],
+				environments: []
+			});
+			const imported = await service.importCollection(JSON.stringify(collection));
+			const secretKey = `curl-code.request-auth.${imported!.id}.req_1.token`;
+
+			expect(await context.secrets.get(secretKey)).to.equal('delete-me');
+
+			await service.deleteCollection(imported!.id);
+
+			expect(await context.secrets.get(secretKey)).to.be.undefined;
+		});
+
+		it('should clean up request auth secrets when deleting a request', async () => {
+			const collection = createCollectionWithSecret({
+				id: 'col_delreq_auth',
+				name: 'Delete Req Auth',
+				requests: [createMockRequest({ id: 'req_del', auth: { type: 'api-key', apiKeyName: 'X-Key', apiKeyValue: 'key-val', apiKeyLocation: 'header' } })],
+				environments: []
+			});
+			const imported = await service.importCollection(JSON.stringify(collection));
+			const secretKey = `curl-code.request-auth.${imported!.id}.req_del.apiKeyValue`;
+
+			expect(await context.secrets.get(secretKey)).to.equal('key-val');
+
+			await service.deleteRequest('req_del', imported!.id);
+
+			expect(await context.secrets.get(secretKey)).to.be.undefined;
+		});
+
 		it('should redact secrets from linked collection source file on save', async () => {
 			const sourcePath = '/projects/api/collection.json';
 			const collection = createCollectionWithSecret({

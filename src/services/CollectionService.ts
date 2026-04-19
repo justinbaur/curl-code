@@ -11,6 +11,7 @@ import { createEmptyCollection, createEmptyFolder } from '../types/collection';
 
 export class CollectionService {
     private static readonly SECRET_PREFIX = 'curl-code.collection-secret.';
+    private static readonly REQUEST_AUTH_PREFIX = 'curl-code.request-auth.';
     private collections: Collection[] = [];
     private storageDir: string;
     private context: vscode.ExtensionContext;
@@ -91,16 +92,86 @@ export class CollectionService {
      * Delete all secret variables for a collection from SecretStorage
      */
     private async deleteAllSecrets(collection: Collection): Promise<void> {
-        if (!collection.environments) return;
-        for (const env of collection.environments) {
-            for (const variable of env.variables) {
-                if (variable.type === 'secret') {
-                    await this.context.secrets.delete(
-                        this.secretKey(collection.id, env.id, variable.key)
-                    );
+        if (collection.environments) {
+            for (const env of collection.environments) {
+                for (const variable of env.variables) {
+                    if (variable.type === 'secret') {
+                        await this.context.secrets.delete(
+                            this.secretKey(collection.id, env.id, variable.key)
+                        );
+                    }
                 }
             }
         }
+        for (const request of this.getAllRequests(collection)) {
+            await this.deleteRequestAuthSecrets(collection.id, request.id);
+        }
+    }
+
+    private requestAuthSecretKey(collectionId: string, requestId: string, field: string): string {
+        return `${CollectionService.REQUEST_AUTH_PREFIX}${collectionId}.${requestId}.${field}`;
+    }
+
+    private getAllRequests(collection: Collection): HttpRequest[] {
+        const requests: HttpRequest[] = [...collection.requests];
+        const collectFromFolders = (folders: Folder[]): void => {
+            for (const folder of folders) {
+                requests.push(...folder.requests);
+                collectFromFolders(folder.folders);
+            }
+        };
+        collectFromFolders(collection.folders);
+        return requests;
+    }
+
+    private redactRequestAuth(collection: Collection): Collection {
+        const redactReqs = (reqs: HttpRequest[]): HttpRequest[] =>
+            reqs.map(r => r.auth.type === 'none' ? r : {
+                ...r,
+                auth: { ...r.auth, password: undefined, token: undefined, apiKeyValue: undefined }
+            });
+        const redactFolders = (folders: Folder[]): Folder[] =>
+            folders.map(f => ({
+                ...f,
+                requests: redactReqs(f.requests),
+                folders: redactFolders(f.folders)
+            }));
+        return {
+            ...collection,
+            requests: redactReqs(collection.requests),
+            folders: redactFolders(collection.folders)
+        };
+    }
+
+    private async persistRequestAuth(collection: Collection): Promise<void> {
+        for (const request of this.getAllRequests(collection)) {
+            if (request.auth.type === 'none') continue;
+            const { password, token, apiKeyValue } = request.auth;
+            const key = (field: string) => this.requestAuthSecretKey(collection.id, request.id, field);
+            if (password !== undefined) await this.context.secrets.store(key('password'), password);
+            if (token !== undefined) await this.context.secrets.store(key('token'), token);
+            if (apiKeyValue !== undefined) await this.context.secrets.store(key('apiKeyValue'), apiKeyValue);
+        }
+    }
+
+    private async restoreRequestAuth(collection: Collection): Promise<void> {
+        for (const request of this.getAllRequests(collection)) {
+            if (request.auth.type === 'none') continue;
+            const key = (field: string) => this.requestAuthSecretKey(collection.id, request.id, field);
+            const password = await this.context.secrets.get(key('password'));
+            if (password !== undefined) request.auth.password = password;
+            const token = await this.context.secrets.get(key('token'));
+            if (token !== undefined) request.auth.token = token;
+            const apiKeyValue = await this.context.secrets.get(key('apiKeyValue'));
+            if (apiKeyValue !== undefined) request.auth.apiKeyValue = apiKeyValue;
+        }
+    }
+
+    private async deleteRequestAuthSecrets(collectionId: string, requestId: string): Promise<void> {
+        const key = (field: string) => this.requestAuthSecretKey(collectionId, requestId, field);
+        await this.context.secrets.delete(key('password'));
+        await this.context.secrets.delete(key('token'));
+        await this.context.secrets.delete(key('apiKeyValue'));
     }
 
     /**
@@ -285,6 +356,7 @@ export class CollectionService {
                 const index = folder.requests.findIndex(r => r.id === requestId);
                 if (index >= 0) {
                     folder.requests.splice(index, 1);
+                    await this.deleteRequestAuthSecrets(collectionId, requestId);
                     await this.saveCollection(collection);
                     this.onChangeEmitter.fire();
                     return true;
@@ -294,6 +366,7 @@ export class CollectionService {
             const index = collection.requests.findIndex(r => r.id === requestId);
             if (index >= 0) {
                 collection.requests.splice(index, 1);
+                await this.deleteRequestAuthSecrets(collectionId, requestId);
                 await this.saveCollection(collection);
                 this.onChangeEmitter.fire();
                 return true;
@@ -310,7 +383,7 @@ export class CollectionService {
         const collection = this.getCollection(collectionId);
         if (!collection) return undefined;
         // Strip internal fields and redact secrets before exporting
-        const redacted = this.redactSecrets(collection);
+        const redacted = this.redactRequestAuth(this.redactSecrets(collection));
         const { sourcePath: _sourcePath, ...exportable } = redacted;
         return JSON.stringify(exportable, null, 2);
     }
@@ -357,6 +430,7 @@ export class CollectionService {
                 }
                 // Migrate any plaintext secrets from the imported data into SecretStorage
                 await this.persistSecrets(newCollection);
+                await this.persistRequestAuth(newCollection);
                 const stub = { id: newCollection.id, sourcePath };
                 await this.ensureStorageDir();
                 await fsFacade.writeFile(
@@ -444,6 +518,7 @@ export class CollectionService {
                             const collection = JSON.parse(sourceContent) as Collection;
                             collection.sourcePath = parsed.sourcePath;
                             await this.restoreSecrets(collection);
+                            await this.restoreRequestAuth(collection);
                             this.collections.push(collection);
                         } catch {
                             vscode.window.showWarningMessage(
@@ -453,6 +528,7 @@ export class CollectionService {
                     } else {
                         const collection = parsed as Collection;
                         await this.restoreSecrets(collection);
+                        await this.restoreRequestAuth(collection);
                         this.collections.push(collection);
                     }
                 } catch {
@@ -476,7 +552,8 @@ export class CollectionService {
 
         // Persist secret values to SecretStorage and redact them from the JSON
         await this.persistSecrets(collection);
-        const redacted = this.redactSecrets(collection);
+        await this.persistRequestAuth(collection);
+        const redacted = this.redactRequestAuth(this.redactSecrets(collection));
 
         if (collection.sourcePath) {
             if (!this.isValidSourcePath(collection.sourcePath)) {
