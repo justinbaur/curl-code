@@ -643,14 +643,23 @@ export async function activate(context: vscode.ExtensionContext) {
                                 // Get the environment name
                                 environmentName = collection.environments[envIndex].name;
 
-                                // Deactivate all environments in this collection
+                                // Deactivate all environments in this collection, activate target
                                 collection.environments.forEach(e => e.isActive = false);
-                                // Activate the selected environment
                                 collection.environments[envIndex].isActive = true;
-                                // Save the collection
                                 await collectionService.updateCollection(collection.id, collection);
                                 found = true;
-                                break;
+                            } else {
+                                // Not the target collection — clear any stale isActive flags
+                                let needsUpdate = false;
+                                collection.environments.forEach(e => {
+                                    if (e.isActive) {
+                                        e.isActive = false;
+                                        needsUpdate = true;
+                                    }
+                                });
+                                if (needsUpdate) {
+                                    await collectionService.updateCollection(collection.id, collection);
+                                }
                             }
                         }
                     }
@@ -665,8 +674,9 @@ export async function activate(context: vscode.ExtensionContext) {
                     await envFileService.setActiveEnvironment(null);
                 }
 
-                // Refresh environment tree
+                // Refresh environment tree and sync all open request panels
                 environmentProvider.refresh();
+                requestPanelManager.broadcastEnvironments();
 
                 if (environmentName) {
                     vscode.window.showInformationMessage(`Environment "${environmentName}" is now active`);
@@ -698,8 +708,9 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            // Refresh environment tree
+            // Refresh environment tree and sync all open request panels
             environmentProvider.refresh();
+            requestPanelManager.broadcastEnvironments();
             vscode.window.showInformationMessage('Environment deactivated');
         }),
 
