@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.7]
+
+### Fixed
+
+- Environment picker dropdown would not reflect the active environment
+- Multiple active environments from being selected
+- Styling on environment picker dropdown to use VS Code theme
+
+## [v0.5.6]
+
+### Changed
+
+- Styling tweaks with colors and grouping of buttons
+
+### Fixed
+
+- Strip credentials from requests when exporting collection (Previously only stipping from env)
+- Request body theme uses your VS Code themeDependency bumps
+
+## [v0.5.5]
+
+### Changed
+
+- Dependency bumps
+
+### Fixed
+
+- API key auth not mapping to cURL command properly
+- Support for variable substitution when sending request using Rest Client/HTTP file format
+
+## [v0.5.4]
+
+### Fixed
+
+- Shortcuts in request body
+
+## [v0.5.3]
+
+### Fixed
+
+- Keybindings for copy/paste in request body
+
 ## [v0.5.2]
 
 ### Changed

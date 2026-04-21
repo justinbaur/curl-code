@@ -426,6 +426,13 @@ export class RequestPanelManager {
     }
 
     /**
+     * Broadcast current environment state to all open panels (called after external changes)
+     */
+    broadcastEnvironments(): void {
+        this.sendEnvironments();
+    }
+
+    /**
      * Send environment data to a specific panel, or broadcast to all panels if none given
      */
     private sendEnvironments(panel?: vscode.WebviewPanel): void {
