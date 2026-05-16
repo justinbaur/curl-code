@@ -12,6 +12,7 @@ import { resolveUrlEncodedVarsInRequest } from '../parsers/systemVariableResolve
 import type { EnvironmentService } from '../services/EnvironmentService';
 import type { CollectionService } from '../services/CollectionService';
 import type { EnvFileService } from '../services/EnvFileService';
+import { parseMaxTimeMs } from '../utils/curlFlagParser';
 
 /**
  * Error thrown when a request is cancelled by the user.
@@ -27,6 +28,7 @@ export class RequestCancelledError extends Error {
 
 /** How long to wait after SIGTERM before escalating to SIGKILL (ms) */
 const SIGKILL_DELAY_MS = 3000;
+
 
 export class CurlExecutor {
     private currentProcess: ChildProcess | null = null;
@@ -163,7 +165,10 @@ export class CurlExecutor {
 
             // Handle timeout — kill the process and reject if cURL's own
             // --max-time / --connect-timeout don't fire first.
-            const timeout = options.timeout;
+            // If the user supplied --max-time in rawFlags it overrides curl's own
+            // flag (appended last), so the JS timer must respect it too.
+            const rawMaxTimeMs = parseMaxTimeMs(interpolatedRequest.advanced?.rawFlags ?? '');
+            const timeout = rawMaxTimeMs !== null ? Math.max(rawMaxTimeMs, options.timeout) : options.timeout;
             this.timeoutHandle = setTimeout(() => {
                 if (this.currentProcess) {
                     this.killWithEscalation(this.currentProcess);
@@ -337,7 +342,7 @@ export class CurlExecutor {
         return {
             followRedirects: config.get<boolean>('followRedirects', true),
             verifySSL: config.get<boolean>('verifySSL', true),
-            timeout: config.get<number>('timeout', 30000)
+            timeout: config.get<number>('timeout', 600000)
         };
     }
 

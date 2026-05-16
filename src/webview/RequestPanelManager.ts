@@ -323,6 +323,7 @@ export class RequestPanelManager {
     private async executeSendRequest(request: HttpRequest, panel: vscode.WebviewPanel): Promise<void> {
         this.sendMessageTo(panel, { type: 'requestStarted' });
 
+        const startTime = Date.now();
         try {
             const response = await this.curlExecutor.execute(request);
             this.sendMessageTo(panel, { type: 'responseReceived', response });
@@ -334,7 +335,8 @@ export class RequestPanelManager {
                 return;
             }
             const errorMessage = error instanceof Error ? error.message : String(error);
-            this.sendMessageTo(panel, { type: 'requestError', error: errorMessage });
+            const elapsed = Date.now() - startTime;
+            this.sendMessageTo(panel, { type: 'requestError', error: errorMessage, time: elapsed });
             await this.historyService.addEntry(request, undefined, errorMessage);
         }
     }

@@ -1,0 +1,96 @@
+{
+  "mappings": [
+    {
+      "name": "400 Bad Request",
+      "request": { "method": "ANY", "url": "/status/400" },
+      "response": {
+        "status": 400,
+        "jsonBody": { "error": "Bad Request", "message": "The request could not be understood." },
+        "headers": { "Content-Type": "application/json" }
+      }
+    },
+    {
+      "name": "401 Unauthorized",
+      "request": { "method": "ANY", "url": "/status/401" },
+      "response": {
+        "status": 401,
+        "jsonBody": { "error": "Unauthorized", "message": "Authentication is required." },
+        "headers": {
+          "Content-Type": "application/json",
+          "WWW-Authenticate": "Bearer realm=\"test\""
+        }
+      }
+    },
+    {
+      "name": "403 Forbidden",
+      "request": { "method": "ANY", "url": "/status/403" },
+      "response": {
+        "status": 403,
+        "jsonBody": { "error": "Forbidden", "message": "You do not have permission to access this resource." },
+        "headers": { "Content-Type": "application/json" }
+      }
+    },
+    {
+      "name": "404 Not Found",
+      "request": { "method": "ANY", "url": "/status/404" },
+      "response": {
+        "status": 404,
+        "jsonBody": { "error": "Not Found", "message": "The requested resource does not exist." },
+        "headers": { "Content-Type": "application/json" }
+      }
+    },
+    {
+      "name": "429 Too Many Requests",
+      "request": { "method": "ANY", "url": "/status/429" },
+      "response": {
+        "status": 429,
+        "jsonBody": { "error": "Too Many Requests", "message": "Rate limit exceeded." },
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "60",
+          "X-RateLimit-Limit": "100",
+          "X-RateLimit-Remaining": "0"
+        }
+      }
+    },
+    {
+      "name": "500 Internal Server Error",
+      "request": { "method": "ANY", "url": "/status/500" },
+      "response": {
+        "status": 500,
+        "jsonBody": { "error": "Internal Server Error", "message": "An unexpected error occurred." },
+        "headers": { "Content-Type": "application/json" }
+      }
+    },
+    {
+      "name": "502 Bad Gateway",
+      "request": { "method": "ANY", "url": "/status/502" },
+      "response": {
+        "status": 502,
+        "jsonBody": { "error": "Bad Gateway", "message": "The upstream server returned an invalid response." },
+        "headers": { "Content-Type": "application/json" }
+      }
+    },
+    {
+      "name": "503 Service Unavailable",
+      "request": { "method": "ANY", "url": "/status/503" },
+      "response": {
+        "status": 503,
+        "jsonBody": { "error": "Service Unavailable", "message": "The service is temporarily unavailable." },
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        }
+      }
+    },
+    {
+      "name": "504 Gateway Timeout",
+      "request": { "method": "ANY", "url": "/status/504" },
+      "response": {
+        "status": 504,
+        "jsonBody": { "error": "Gateway Timeout", "message": "The upstream server did not respond in time." },
+        "headers": { "Content-Type": "application/json" }
+      }
+    }
+  ]
+}

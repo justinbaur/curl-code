@@ -16,7 +16,7 @@ type Layout = 'horizontal' | 'vertical';
 
 export default function App() {
   const { request, setRequest, isLoading, setLoading } = useRequestStore();
-  const { response, error, setResponse, setError, clearResponse } =
+  const { response, error, errorTime, setResponse, setError, clearResponse } =
     useResponseStore();
   const { setEnvironments } = useEnvironmentStore();
   const [isDirty, setIsDirty] = useState(false);
@@ -75,7 +75,7 @@ export default function App() {
           setLoading(false);
           break;
         case 'requestError':
-          setError(message.error);
+          setError(message.error, message.time);
           setLoading(false);
           break;
         case 'requestStarted':
@@ -194,7 +194,7 @@ export default function App() {
           {isLoading ? (
             <LoadingSpinner onCancel={handleCancel} />
           ) : (
-            <ResponseViewer response={response} error={error} />
+            <ResponseViewer response={response} error={error} errorTime={errorTime} />
           )}
         </div>
       </div>

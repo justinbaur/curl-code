@@ -1,0 +1,65 @@
+{
+  "mappings": [
+    {
+      "name": "delay 5s",
+      "request": { "method": "ANY", "url": "/delay/5" },
+      "response": {
+        "status": 200,
+        "jsonBody": { "delayed": "5s" },
+        "headers": { "Content-Type": "application/json" },
+        "fixedDelayMilliseconds": 5000
+      }
+    },
+    {
+      "name": "delay 15s",
+      "request": { "method": "ANY", "url": "/delay/15" },
+      "response": {
+        "status": 200,
+        "jsonBody": { "delayed": "15s" },
+        "headers": { "Content-Type": "application/json" },
+        "fixedDelayMilliseconds": 15000
+      }
+    },
+    {
+      "name": "delay 30s",
+      "request": { "method": "ANY", "url": "/delay/30" },
+      "response": {
+        "status": 200,
+        "jsonBody": { "delayed": "30s" },
+        "headers": { "Content-Type": "application/json" },
+        "fixedDelayMilliseconds": 30000
+      }
+    },
+    {
+      "name": "delay 60s",
+      "request": { "method": "ANY", "url": "/delay/60" },
+      "response": {
+        "status": 200,
+        "jsonBody": { "delayed": "60s" },
+        "headers": { "Content-Type": "application/json" },
+        "fixedDelayMilliseconds": 60000
+      }
+    },
+    {
+      "name": "hang — accepts connection, never responds",
+      "request": { "method": "ANY", "url": "/hang" },
+      "response": {
+        "status": 200,
+        "fixedDelayMilliseconds": 3600000
+      }
+    },
+    {
+      "name": "slow body — headers arrive immediately, body dribbles over 30s",
+      "request": { "method": "ANY", "url": "/slow" },
+      "response": {
+        "status": 200,
+        "body": "This response body is streamed slowly over 30 seconds to simulate a slow server.",
+        "headers": { "Content-Type": "text/plain" },
+        "chunkedDribbleDelay": {
+          "numberOfChunks": 15,
+          "totalDuration": 30000
+        }
+      }
+    }
+  ]
+}
