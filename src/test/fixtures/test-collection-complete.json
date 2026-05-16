@@ -126,7 +126,7 @@
         },
         {
           "key": "apiKey",
-          "value": "dev-local-key-12345",
+          "value": "",
           "type": "secret",
           "enabled": true
         },
@@ -157,7 +157,7 @@
         },
         {
           "key": "apiKey",
-          "value": "staging-secret-key-67890",
+          "value": "",
           "type": "secret",
           "enabled": true
         },
@@ -188,7 +188,7 @@
         },
         {
           "key": "apiKey",
-          "value": "prod-secret-key-abcdef",
+          "value": "",
           "type": "secret",
           "enabled": true
         },
@@ -202,5 +202,5 @@
     }
   ],
   "createdAt": 1738677600000,
-  "updatedAt": 1738677600000
+  "updatedAt": 1776750454709
 }

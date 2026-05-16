@@ -1,0 +1,84 @@
+{
+  "mappings": [
+    {
+      "name": "echo — reflects method, headers, and body back",
+      "request": { "method": "ANY", "url": "/echo" },
+      "response": {
+        "status": 200,
+        "body": "{\n  \"method\": \"{{request.method}}\",\n  \"url\": \"{{request.url}}\",\n  \"headers\": {\n    {{#each request.headers}}\"{{key}}\": \"{{value}}\"{{#unless @last}},\n    {{/unless}}{{/each}}\n  },\n  \"body\": \"{{request.body}}\"\n}",
+        "headers": { "Content-Type": "application/json" }
+      }
+    },
+    {
+      "name": "JSON response",
+      "request": { "method": "ANY", "url": "/json" },
+      "response": {
+        "status": 200,
+        "jsonBody": {
+          "id": 1,
+          "name": "Test Object",
+          "active": true,
+          "tags": ["curl", "test", "wiremock"],
+          "metadata": {
+            "created": "2024-01-01T00:00:00Z",
+            "version": "1.0.0"
+          }
+        },
+        "headers": { "Content-Type": "application/json" }
+      }
+    },
+    {
+      "name": "large response — for testing size display",
+      "request": { "method": "ANY", "url": "/large" },
+      "response": {
+        "status": 200,
+        "jsonBody": {
+          "description": "A large response payload for testing size rendering in the response viewer.",
+          "items": [
+            { "id": 1, "name": "Alpha", "value": "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua" },
+            { "id": 2, "name": "Beta",  "value": "Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat" },
+            { "id": 3, "name": "Gamma", "value": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur" },
+            { "id": 4, "name": "Delta", "value": "Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum" },
+            { "id": 5, "name": "Epsilon", "value": "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium" },
+            { "id": 6, "name": "Zeta",  "value": "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit sed quia consequuntur" },
+            { "id": 7, "name": "Eta",   "value": "Neque porro quisquam est qui dolorem ipsum quia dolor sit amet consectetur adipisci velit" },
+            { "id": 8, "name": "Theta", "value": "Ut labore et dolore magnam aliquam quaerat voluptatem ut enim ad minima veniam quis nostrum" },
+            { "id": 9, "name": "Iota",  "value": "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur" },
+            { "id": 10, "name": "Kappa", "value": "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum" }
+          ]
+        },
+        "headers": { "Content-Type": "application/json" }
+      }
+    },
+    {
+      "name": "redirect — 301 to /json",
+      "request": { "method": "ANY", "url": "/redirect" },
+      "response": {
+        "status": 301,
+        "headers": {
+          "Location": "http://localhost:8080/json"
+        }
+      }
+    },
+    {
+      "name": "many response headers",
+      "request": { "method": "ANY", "url": "/headers" },
+      "response": {
+        "status": 200,
+        "jsonBody": { "message": "Check the Headers tab" },
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "abc-123-def-456",
+          "X-RateLimit-Limit": "1000",
+          "X-RateLimit-Remaining": "999",
+          "X-RateLimit-Reset": "1700000000",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "X-Frame-Options": "DENY",
+          "X-Content-Type-Options": "nosniff",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+          "X-Powered-By": "WireMock"
+        }
+      }
+    }
+  ]
+}

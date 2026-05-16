@@ -9,7 +9,7 @@ import type { Environment } from './collection';
 export type ExtensionToWebviewMessage =
     | { type: 'loadRequest'; request: HttpRequest }
     | { type: 'responseReceived'; response: HttpResponse }
-    | { type: 'requestError'; error: string }
+    | { type: 'requestError'; error: string; time?: number }
     | { type: 'requestStarted' }
     | { type: 'requestCancelled' }
     | { type: 'requestSaved' }

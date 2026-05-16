@@ -13,6 +13,7 @@ import { ResponseLog } from './ResponseLog';
 interface ResponseViewerProps {
   response: HttpResponse | null;
   error: string | null;
+  errorTime?: number | null;
 }
 
 type TabId = 'body' | 'headers' | 'curl' | 'log';
@@ -33,7 +34,12 @@ function getTabCopyText(tab: TabId, response: HttpResponse): string {
   }
 }
 
-export function ResponseViewer({ response, error }: ResponseViewerProps) {
+function formatTime(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  return `${(ms / 1000).toFixed(2)} s`;
+}
+
+export function ResponseViewer({ response, error, errorTime }: ResponseViewerProps) {
   const [activeTab, setActiveTab] = useState<TabId>('body');
   const [wordWrap, setWordWrap] = useState(false);
   const [copyLabel, setCopyLabel] = useState('Copy');
@@ -48,10 +54,21 @@ export function ResponseViewer({ response, error }: ResponseViewerProps) {
 
   if (error) {
     return (
-      <div className="response-viewer error">
-        <div className="error-message">
-          <h3>Request Failed</h3>
-          <pre>{error}</pre>
+      <div className="response-viewer">
+        <div className="response-info">
+          <span className="status-code server-error">Failed</span>
+          {errorTime != null && (
+            <>
+              <span className="response-info-separator" />
+              <div className="response-info-item">
+                <span className="response-info-label">Time</span>
+                <span className="response-info-value">{formatTime(errorTime)}</span>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="tab-content">
+          <ResponseLog log={error} />
         </div>
       </div>
     );

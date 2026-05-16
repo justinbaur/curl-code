@@ -55,7 +55,7 @@ describe('CurlExecutor Integration', () => {
 		mockConfig.get.withArgs('curlPath', 'curl').returns('curl');
 		mockConfig.get.withArgs('followRedirects', true).returns(true);
 		mockConfig.get.withArgs('verifySSL', true).returns(true);
-		mockConfig.get.withArgs('timeout', 30000).returns(30000);
+		mockConfig.get.withArgs('timeout', 600000).returns(30000);
 
 		getConfigurationStub = sinon.stub(vscode.workspace, 'getConfiguration').returns(mockConfig as any);
 		mockProcess = new MockChildProcess();

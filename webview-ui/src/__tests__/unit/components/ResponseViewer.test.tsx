@@ -31,7 +31,7 @@ describe('ResponseViewer', () => {
 			const error = 'Network timeout';
 			render(<ResponseViewer response={null} error={error} />);
 
-			expect(screen.getByText('Request Failed')).toBeInTheDocument();
+			expect(screen.getByText('Failed')).toBeInTheDocument();
 			expect(screen.getByText(error)).toBeInTheDocument();
 		});
 
@@ -50,7 +50,7 @@ describe('ResponseViewer', () => {
 			render(<ResponseViewer response={mockResponse} error="Error occurred" />);
 
 			expect(screen.queryByText('Success')).not.toBeInTheDocument();
-			expect(screen.getByText('Request Failed')).toBeInTheDocument();
+			expect(screen.getByText('Failed')).toBeInTheDocument();
 		});
 
 		it('should display multiline error messages', () => {
@@ -275,13 +275,13 @@ describe('ResponseViewer', () => {
 			rerender(<ResponseViewer response={mockResponse} error="Network error" />);
 
 			expect(screen.queryByRole('button')).not.toBeInTheDocument();
-			expect(screen.getByText('Request Failed')).toBeInTheDocument();
+			expect(screen.getByText('Failed')).toBeInTheDocument();
 		});
 
 		it('should transition from error to response', () => {
 			const { rerender } = render(<ResponseViewer response={null} error="Initial error" />);
 
-			expect(screen.getByText('Request Failed')).toBeInTheDocument();
+			expect(screen.getByText('Failed')).toBeInTheDocument();
 
 			const mockResponse: HttpResponse = {
 				status: 201,
@@ -296,7 +296,7 @@ describe('ResponseViewer', () => {
 
 			rerender(<ResponseViewer response={mockResponse} error={null} />);
 
-			expect(screen.queryByText('Request Failed')).not.toBeInTheDocument();
+			expect(screen.queryByText('Failed')).not.toBeInTheDocument();
 			expect(screen.getByRole('button', { name: /body/i })).toBeInTheDocument();
 		});
 
