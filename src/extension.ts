@@ -608,8 +608,8 @@ export async function activate(context: vscode.ExtensionContext) {
                     }
                 } else if (envFileService.getEnvironment(envId)) {
                     // It's a .env file environment
-                    const envFileEnv = envFileService.getEnvironment(envId)!;
-                    environmentName = envFileEnv.name;
+                    const envFileEnv = envFileService.getEnvironment(envId);
+                    environmentName = envFileEnv?.name;
                     await envFileService.setActiveEnvironment(envId);
 
                     // Deactivate global environments
