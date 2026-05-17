@@ -429,7 +429,7 @@ describe('CurlExecutor Integration', () => {
 			const responsePromise = executor.execute(request);
 
 			// Cancel before process completes
-			executor.cancel();
+			executor.cancel(request.id);
 
 			expect(mockProcess.killed).to.be.true;
 
@@ -443,7 +443,7 @@ describe('CurlExecutor Integration', () => {
 		});
 
 		it('should do nothing if no request is in progress', () => {
-			expect(() => executor.cancel()).to.not.throw();
+			expect(() => executor.cancel('nonexistent-id')).to.not.throw();
 		});
 
 		it('should not reject twice when cancel is followed by close event', async () => {
@@ -453,7 +453,7 @@ describe('CurlExecutor Integration', () => {
 			const request = createMockRequest();
 			const responsePromise = executor.execute(request);
 
-			executor.cancel();
+			executor.cancel(request.id);
 
 			// Manually fire close (simulating the OS delivering the signal)
 			mockProcess.emit('close', null);
@@ -477,7 +477,7 @@ describe('CurlExecutor Integration', () => {
 			// Use fake timers so we can advance past the SIGKILL delay
 			const clock = sinon.useFakeTimers({ shouldAdvanceTime: false });
 			try {
-				executor.cancel();
+				executor.cancel(request.id);
 
 				expect(mockProcess.killSignals).to.include('SIGTERM');
 				expect(mockProcess.killSignals).to.not.include('SIGKILL');
