@@ -31,20 +31,13 @@ const SIGKILL_DELAY_MS = 3000;
 
 
 export class CurlExecutor {
-    private currentProcess: ChildProcess | null = null;
     private argumentBuilder: ArgumentBuilder;
     private responseParser: ResponseParser;
     private environmentService: EnvironmentService | undefined;
     private collectionService: CollectionService | undefined;
     private envFileService: EnvFileService | undefined;
-    /** Prevents the close/error handlers from settling the Promise twice */
-    private settled = false;
-    /** Set by cancel() so the close handler knows this was user-initiated */
-    private cancelled = false;
-    /** Handle for the JS-side timeout so it can be cleared on completion */
-    private timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-    /** Handle for the SIGKILL escalation timer */
-    private sigkillHandle: ReturnType<typeof setTimeout> | null = null;
+    /** Per-execution cancel functions, keyed by request ID */
+    private activeExecutions = new Map<string, () => void>();
 
     constructor(environmentService?: EnvironmentService, collectionService?: CollectionService, envFileService?: EnvFileService) {
         this.argumentBuilder = new ArgumentBuilder();
@@ -68,30 +61,43 @@ export class CurlExecutor {
         const args = this.argumentBuilder.build(interpolatedRequest, options);
         const startTime = Date.now();
 
-        // Reset per-request state
-        this.settled = false;
-        this.cancelled = false;
-
         return new Promise((resolve, reject) => {
+            // Per-execution state — isolated so concurrent requests don't interfere
+            let currentProcess: ChildProcess | null = null;
+            let settled = false;
+            let cancelled = false;
+            let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+            let sigkillHandle: ReturnType<typeof setTimeout> | null = null;
+
             /** Settle the promise exactly once, cleaning up the timeout timer.
              *  Note: we intentionally do NOT clear sigkillHandle here — if a
              *  SIGTERM was sent and the process hasn't exited yet, we still need
              *  the SIGKILL escalation to fire. The sigkillHandle is harmless if
              *  the process is already dead (kill() is wrapped in try/catch). */
             const settle = (outcome: { response?: HttpResponse; error?: Error }) => {
-                if (this.settled) return;
-                this.settled = true;
-                if (this.timeoutHandle) {
-                    clearTimeout(this.timeoutHandle);
-                    this.timeoutHandle = null;
+                if (settled) return;
+                settled = true;
+                if (timeoutHandle) {
+                    clearTimeout(timeoutHandle);
+                    timeoutHandle = null;
                 }
-                this.currentProcess = null;
+                this.activeExecutions.delete(request.id);
                 if (outcome.response) {
                     resolve(outcome.response);
                 } else {
                     reject(outcome.error);
                 }
             };
+
+            this.activeExecutions.set(request.id, () => {
+                if (currentProcess) {
+                    cancelled = true;
+                    currentProcess.kill('SIGTERM');
+                    sigkillHandle = setTimeout(() => {
+                        try { currentProcess!.kill('SIGKILL'); } catch { /* already dead */ }
+                    }, SIGKILL_DELAY_MS);
+                }
+            });
 
             let stdout = '';
             let stderr = '';
@@ -110,27 +116,27 @@ export class CurlExecutor {
                 '-S'        // Show errors
             ];
 
-            this.currentProcess = childProcessFacade.spawn(curlPath, fullArgs, {
+            currentProcess = childProcessFacade.spawn(curlPath, fullArgs, {
                 shell: false,
                 windowsHide: true
             });
 
-            this.currentProcess.stdout?.on('data', (data: Buffer) => {
+            currentProcess.stdout?.on('data', (data: Buffer) => {
                 stdout += data.toString();
             });
 
-            this.currentProcess.stderr?.on('data', (data: Buffer) => {
+            currentProcess.stderr?.on('data', (data: Buffer) => {
                 stderr += data.toString();
             });
 
-            this.currentProcess.on('close', (code) => {
+            currentProcess.on('close', (code) => {
                 // Process exited — SIGKILL escalation is no longer needed
-                if (this.sigkillHandle) {
-                    clearTimeout(this.sigkillHandle);
-                    this.sigkillHandle = null;
+                if (sigkillHandle) {
+                    clearTimeout(sigkillHandle);
+                    sigkillHandle = null;
                 }
 
-                if (this.cancelled) {
+                if (cancelled) {
                     settle({ error: new RequestCancelledError() });
                     return;
                 }
@@ -159,7 +165,7 @@ export class CurlExecutor {
                 }
             });
 
-            this.currentProcess.on('error', (error) => {
+            currentProcess.on('error', (error) => {
                 settle({ error: new Error(`Failed to execute cURL: ${error.message}`) });
             });
 
@@ -169,9 +175,12 @@ export class CurlExecutor {
             // flag (appended last), so the JS timer must respect it too.
             const rawMaxTimeMs = parseMaxTimeMs(interpolatedRequest.advanced?.rawFlags ?? '');
             const timeout = rawMaxTimeMs !== null ? Math.max(rawMaxTimeMs, options.timeout) : options.timeout;
-            this.timeoutHandle = setTimeout(() => {
-                if (this.currentProcess) {
-                    this.killWithEscalation(this.currentProcess);
+            timeoutHandle = setTimeout(() => {
+                if (currentProcess) {
+                    currentProcess.kill('SIGTERM');
+                    sigkillHandle = setTimeout(() => {
+                        try { currentProcess!.kill('SIGKILL'); } catch { /* already dead */ }
+                    }, SIGKILL_DELAY_MS);
                     settle({ error: new Error(`Request timed out after ${timeout}ms`) });
                 }
             }, timeout + 1000); // 1 s buffer for cURL's own timeout handling
@@ -179,23 +188,10 @@ export class CurlExecutor {
     }
 
     /**
-     * Cancel the current request
+     * Cancel the in-progress request for the given request ID
      */
-    cancel(): void {
-        if (this.currentProcess) {
-            this.cancelled = true;
-            this.killWithEscalation(this.currentProcess);
-        }
-    }
-
-    /**
-     * Send SIGTERM, then escalate to SIGKILL if the process doesn't exit.
-     */
-    private killWithEscalation(proc: ChildProcess): void {
-        proc.kill('SIGTERM');
-        this.sigkillHandle = setTimeout(() => {
-            try { proc.kill('SIGKILL'); } catch { /* already dead */ }
-        }, SIGKILL_DELAY_MS);
+    cancel(requestId: string): void {
+        this.activeExecutions.get(requestId)?.();
     }
 
 

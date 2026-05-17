@@ -116,7 +116,7 @@
     {
       "id": "env_local",
       "name": "Local Development",
-      "isActive": false,
+      "isActive": true,
       "variables": [
         {
           "key": "baseUrl",
@@ -202,5 +202,5 @@
     }
   ],
   "createdAt": 1738677600000,
-  "updatedAt": 1776750454709
+  "updatedAt": 1778953422455
 }

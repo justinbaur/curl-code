@@ -264,7 +264,7 @@ export class RequestPanelManager {
                     break;
 
                 case 'cancelRequest':
-                    this.curlExecutor.cancel();
+                    this.curlExecutor.cancel(currentRequest.id);
                     this.sendMessageTo(panel, { type: 'requestCancelled' });
                     break;
 
