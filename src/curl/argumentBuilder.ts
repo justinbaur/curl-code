@@ -45,15 +45,6 @@ export class ArgumentBuilder {
             args.push('--insecure');
         }
 
-        // Default connect timeout — fail fast on unreachable hosts rather than
-        // waiting for the full --max-time or OS-level TCP timeout (which can
-        // exceed 2 minutes on Linux).  A per-request connectTimeout in the
-        // advanced options will override this via addAdvancedArgs below.
-        if (!request.advanced?.connectTimeout) {
-            const maxTimeSec = parseInt(request.advanced?.maxTime || '60', 10) || 60;
-            args.push('--connect-timeout', String(Math.min(10, maxTimeSec)));
-        }
-
         // Advanced options
         this.addAdvancedArgs(args, request);
 
@@ -182,8 +173,16 @@ export class ArgumentBuilder {
         }
 
         // Connection & Timeout
-        if (adv.maxTime) args.push('--max-time', adv.maxTime);
-        if (adv.connectTimeout) args.push('--connect-timeout', adv.connectTimeout);
+        if (adv.maxTime) {
+            args.push('--max-time', adv.maxTime);
+        } else{
+            args.push('--max-time', '60');
+        }
+        if (adv.connectTimeout) {
+            args.push('--connect-timeout', adv.connectTimeout);
+        } else {
+            args.push('--connect-timeout', '10');
+        }
         if (adv.keepaliveTime) args.push('--keepalive-time', adv.keepaliveTime);
         if (adv.noKeepalive) args.push('--no-keepalive');
         if (adv.tcpNodelay) args.push('--tcp-nodelay');
