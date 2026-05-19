@@ -103,12 +103,14 @@ export function AdvancedEditor({ advanced, onChange }: AdvancedEditorProps) {
       id: 'connection',
       label: 'Connection',
       badge:
+        (advanced.maxTime && advanced.maxTime !== '60' ? 1 : 0) +
         (advanced.connectTimeout ? 1 : 0) +
         (advanced.keepaliveTime ? 1 : 0) +
         (advanced.noKeepalive ? 1 : 0) +
         (advanced.tcpNodelay ? 1 : 0),
       render: () => (
         <>
+          {renderTextInput('maxTime', 'Max Time (seconds)', '60')}
           {renderTextInput('connectTimeout', 'Connect Timeout (seconds)', '10')}
           {renderTextInput('keepaliveTime', 'Keepalive Time (seconds)', '60')}
           {renderToggle('noKeepalive', 'Disable keepalive (--no-keepalive)')}

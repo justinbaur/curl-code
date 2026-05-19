@@ -47,6 +47,7 @@ export interface AdvancedOptions {
     httpVersion: HttpVersion;
 
     // Connection & Timeout
+    maxTime: string;
     connectTimeout: string;
     keepaliveTime: string;
     noKeepalive: boolean;
@@ -109,6 +110,7 @@ export interface AdvancedOptions {
 export function createDefaultAdvancedOptions(): AdvancedOptions {
     return {
         httpVersion: 'default',
+        maxTime: '60',
         connectTimeout: '',
         keepaliveTime: '',
         noKeepalive: false,

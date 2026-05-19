@@ -171,10 +171,12 @@ export class CurlExecutor {
 
             // Handle timeout — kill the process and reject if cURL's own
             // --max-time / --connect-timeout don't fire first.
-            // If the user supplied --max-time in rawFlags it overrides curl's own
-            // flag (appended last), so the JS timer must respect it too.
+            // rawFlags --max-time is appended last so it overrides the structured
+            // maxTime field; the JS timer must respect whichever takes precedence.
             const rawMaxTimeMs = parseMaxTimeMs(interpolatedRequest.advanced?.rawFlags ?? '');
-            const timeout = rawMaxTimeMs !== null ? Math.max(rawMaxTimeMs, options.timeout) : options.timeout;
+            const advMaxTimeSec = parseInt(interpolatedRequest.advanced?.maxTime || '60', 10) || 60;
+            const curlMaxTimeMs = rawMaxTimeMs ?? advMaxTimeSec * 1000;
+            const timeout = Math.max(curlMaxTimeMs, options.timeout);
             timeoutHandle = setTimeout(() => {
                 if (currentProcess) {
                     currentProcess.kill('SIGTERM');
@@ -300,6 +302,7 @@ export class CurlExecutor {
             },
             advanced: request.advanced ? {
                 ...request.advanced,
+                maxTime: resolveVar(request.advanced.maxTime),
                 connectTimeout: resolveVar(request.advanced.connectTimeout),
                 keepaliveTime: resolveVar(request.advanced.keepaliveTime),
                 cookie: resolveVar(request.advanced.cookie),
