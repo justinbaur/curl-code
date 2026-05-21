@@ -45,6 +45,7 @@ export type TlsVersion = 'default' | 'tlsv1.0' | 'tlsv1.1' | 'tlsv1.2' | 'tlsv1.
 
 export interface AdvancedOptions {
   httpVersion: HttpVersion;
+  maxTime: string;
   connectTimeout: string;
   keepaliveTime: string;
   noKeepalive: boolean;
@@ -85,6 +86,7 @@ export interface AdvancedOptions {
 export function createDefaultAdvancedOptions(): AdvancedOptions {
   return {
     httpVersion: 'default',
+    maxTime: '60',
     connectTimeout: '',
     keepaliveTime: '',
     noKeepalive: false,

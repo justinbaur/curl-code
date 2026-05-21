@@ -506,8 +506,8 @@ describe('CurlExecutor Integration', () => {
 			try {
 				const responsePromise = executor.execute(request);
 
-				// Advance past timeout (30 000 ms default + 1 000 ms buffer)
-				clock.tick(31100);
+				// Advance past timeout (60 000 ms default + 1 000 ms buffer)
+				clock.tick(61100);
 
 				// The process should have been killed
 				expect(mockProcess.killed).to.be.true;
@@ -539,7 +539,7 @@ describe('CurlExecutor Integration', () => {
 				const responsePromise = executor.execute(request);
 
 				// Trigger the timeout
-				clock.tick(31100);
+				clock.tick(61100);
 				expect(mockProcess.killSignals).to.include('SIGTERM');
 				expect(mockProcess.killSignals).to.not.include('SIGKILL');
 
@@ -573,7 +573,8 @@ describe('CurlExecutor Integration', () => {
 
 	describe('connect-timeout', () => {
 		it('should pass --connect-timeout by default', async () => {
-			const request = createMockRequest();
+			const { createDefaultAdvancedOptions } = await import('../../../types/request');
+			const request = createMockRequest({ advanced: createDefaultAdvancedOptions() });
 
 			const responsePromise = executor.execute(request);
 

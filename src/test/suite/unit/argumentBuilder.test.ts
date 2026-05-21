@@ -15,7 +15,8 @@ describe('ArgumentBuilder', () => {
 			// Arrange
 			const request = createMockRequest({
 				method: 'GET',
-				url: 'https://api.example.com/users'
+				url: 'https://api.example.com/users',
+				advanced: createDefaultAdvancedOptions()
 			});
 			const options = { followRedirects: false, verifySSL: true, timeout: 30000 };
 
@@ -27,7 +28,7 @@ describe('ArgumentBuilder', () => {
 			expect(args).to.include('GET');
 			expect(args).to.include('https://api.example.com/users');
 			expect(args).to.include('--max-time');
-			expect(args).to.include('30');
+			expect(args).to.include('60');
 		});
 
 		it('should build POST request with JSON body', () => {
@@ -221,14 +222,16 @@ describe('ArgumentBuilder', () => {
 			expect(args).to.include('name=John&age=30');
 		});
 
-		it('should convert timeout from ms to seconds', () => {
-			const request = createMockRequest({});
-			const options = { followRedirects: false, verifySSL: true, timeout: 15000 };
+		it('should use advanced maxTime for --max-time', () => {
+			const request = createMockRequest({
+				advanced: { ...createDefaultAdvancedOptions(), maxTime: '120' }
+			});
+			const options = { followRedirects: false, verifySSL: true, timeout: 30000 };
 
 			const args = builder.build(request, options);
 
 			expect(args).to.include('--max-time');
-			expect(args).to.include('15');
+			expect(args).to.include('120');
 		});
 
 		it('should handle empty body', () => {
@@ -572,7 +575,7 @@ describe('ArgumentBuilder', () => {
 			const args = builder.build(request, defaultOptions);
 			// Should only have the standard flags (including default --connect-timeout), no extras
 			const argsWithoutStandard = args.filter(a =>
-				!['--request', 'GET', '--max-time', '30', '--connect-timeout', '10'].includes(a) &&
+				!['--request', 'GET', '--max-time', '60', '--connect-timeout', '10'].includes(a) &&
 				!a.startsWith('https://')
 			);
 			expect(argsWithoutStandard).to.have.length(0);
@@ -584,7 +587,7 @@ describe('ArgumentBuilder', () => {
 			});
 			const args = builder.build(request, defaultOptions);
 			const argsWithoutStandard = args.filter(a =>
-				!['--request', 'GET', '--max-time', '30', '--connect-timeout', '10'].includes(a) &&
+				!['--request', 'GET', '--max-time', '60', '--connect-timeout', '10'].includes(a) &&
 				!a.startsWith('https://')
 			);
 			expect(argsWithoutStandard).to.have.length(0);
